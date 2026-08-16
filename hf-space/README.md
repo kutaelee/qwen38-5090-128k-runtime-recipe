@@ -2,12 +2,13 @@
 title: Qwen3.8-27B RTX 5090 128K Recipe
 emoji: 🧭
 colorFrom: indigo
-colorTo: cyan
+colorTo: blue
 sdk: static
 app_file: index.html
 fullWidth: true
 header: mini
 short_description: Dual-runtime 128K agent recipe for one RTX 5090
+license: mit
 models:
   - Qwen/Qwen3.8-27B
   - RadixArk/Qwen3.8-27B-NVFP4
