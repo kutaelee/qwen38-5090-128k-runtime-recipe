@@ -1,0 +1,59 @@
+{
+  "general": {
+    "enableAutoUpdate": false,
+    "defaultFileEncoding": "utf-8",
+    "outputLanguage": "en-US",
+    "gitCoAuthor": { "commit": false, "pr": false }
+  },
+  "env": {
+    "LOCAL_QWEN_API_KEY": "<LOCAL_ONLY_DUMMY>"
+  },
+  "modelProviders": {
+    "openai": [
+      {
+        "id": "<SELECTED_MODEL_ID>",
+        "name": "Qwen3.8 local selected runtime",
+        "description": "Task-local OpenAI-compatible endpoint",
+        "envKey": "LOCAL_QWEN_API_KEY",
+        "baseUrl": "<SELECTED_ENDPOINT>/v1",
+        "generationConfig": {
+          "timeout": 600000,
+          "maxRetries": 1,
+          "contextWindowSize": 120000,
+          "samplingParams": {
+            "temperature": 0,
+            "top_p": 1,
+            "max_tokens": 32768,
+            "chat_template_kwargs": { "enable_thinking": false }
+          }
+        }
+      }
+    ]
+  },
+  "security": { "auth": { "selectedType": "openai" } },
+  "model": {
+    "name": "<SELECTED_MODEL_ID>",
+    "skipLoopDetection": true,
+    "enableOpenAILogging": false
+  },
+  "context": {
+    "autoCompactThreshold": 0.7,
+    "fileFiltering": { "respectGitIgnore": true, "respectQwenIgnore": true }
+  },
+  "tools": {
+    "approvalMode": "yolo",
+    "shell": { "enableInteractiveShell": false, "defaultTimeoutMs": 300000 }
+  },
+  "permissions": {
+    "deny": [
+      "Bash(rm *)",
+      "Bash(Remove-Item *)",
+      "Bash(git clean *)",
+      "Bash(git rm *)",
+      "Bash(git reset --hard *)"
+    ]
+  },
+  "privacy": { "usageStatisticsEnabled": false },
+  "telemetry": { "enabled": false, "logPrompts": false },
+  "$version": 4
+}

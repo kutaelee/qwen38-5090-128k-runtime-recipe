@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "default_route": "bounded",
+  "purpose_routes": {
+    "quick-code": "bounded",
+    "bounded-code": "bounded",
+    "tool-use": "bounded",
+    "complex-code": "long",
+    "long-context": "long",
+    "analysis": "long",
+    "autonomous": "long",
+    "long-running": "long",
+    "planning": "long",
+    "integration": "long"
+  },
+  "routes": {
+    "bounded": {
+      "runtime": "llama.cpp-q5-mtp3",
+      "endpoint": "http://127.0.0.1:8082/v1",
+      "model": "<Q5_MODEL_ID>",
+      "start": "powershell -File configs/llamacpp-q5-mtp3-128k.example.ps1",
+      "max_wall_minutes": 20,
+      "max_total_tools": 80
+    },
+    "long": {
+      "runtime": "sglang-nvfp4",
+      "endpoint": "http://127.0.0.1:30000/v1",
+      "model": "/models/models--RadixArk--Qwen3.8-27B-NVFP4/snapshots/52d1adc5f38aa5ebf099c29ed7025ba34cfbb854",
+      "start": "bash configs/sglang-nvfp4-128k.example.sh",
+      "max_wall_minutes": 90,
+      "max_total_tools": 600
+    }
+  },
+  "lifecycle": {
+    "simultaneous_residency": false,
+    "bind": "loopback-only",
+    "stop_previous_before_start": true,
+    "fail_closed_on_port_or_model_mismatch": true
+  }
+}

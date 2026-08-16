@@ -1,0 +1,7 @@
+runtime,weight_format,context_label,approx_context_tokens,decode_tps,kv_dtype,mtp,use_case,sample_note
+SGLang NVFP4,NVFP4,short,,69.3,FP8 E4M3,off,long agent,steady median
+SGLang NVFP4,NVFP4,80K+,80000,60.8,FP8 E4M3,off,long agent,43 long-context samples in counted run
+Q5 llama.cpp MTP3,Q5_K_M,short,,151.72,Q8_0 K/V,draft-mtp n=3,bounded worker,qualified runtime result
+Q5 llama.cpp MTP3,Q5_K_M,32K,32000,120.29,Q8_0 K/V,draft-mtp n=3,bounded worker,qualified runtime result
+Q5 llama.cpp MTP3,Q5_K_M,80K,80000,98.59,Q8_0 K/V,draft-mtp n=3,bounded worker,qualified runtime result
+Q5 llama.cpp MTP3,Q5_K_M,113.9K,113900,94.66,Q8_0 K/V,draft-mtp n=3,bounded worker,qualified runtime result

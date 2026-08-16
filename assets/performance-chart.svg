@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="520" viewBox="0 0 960 520" role="img" aria-labelledby="title desc">
+  <title id="title">Decode throughput versus context depth</title>
+  <desc id="desc">Q5 MTP3 measures 151.72 tokens per second short, 120.29 at 32K, 98.59 at 80K, and 94.66 at 114K. SGLang NVFP4 measures 69.3 short and 60.8 at 80K. Missing values were not measured.</desc>
+  <style>
+    .axis{stroke:#475569;stroke-width:2}.grid{stroke:#e2e8f0;stroke-width:1}.label{font:14px system-ui,sans-serif;fill:#334155}.title{font:700 22px system-ui,sans-serif;fill:#0f172a}.q5{fill:none;stroke:#0891b2;stroke-width:4}.sg{fill:none;stroke:#4f46e5;stroke-width:4}.q5p{fill:#0891b2}.sgp{fill:#4f46e5}.note{font:13px system-ui,sans-serif;fill:#64748b}
+  </style>
+  <rect width="960" height="520" fill="#fff"/>
+  <text class="title" x="480" y="34" text-anchor="middle">Decode throughput vs. context depth</text>
+  <g>
+    <line class="grid" x1="100" y1="430" x2="900" y2="430"/><line class="grid" x1="100" y1="330" x2="900" y2="330"/><line class="grid" x1="100" y1="230" x2="900" y2="230"/><line class="grid" x1="100" y1="130" x2="900" y2="130"/><line class="grid" x1="100" y1="70" x2="900" y2="70"/>
+    <line class="axis" x1="100" y1="70" x2="100" y2="430"/><line class="axis" x1="100" y1="430" x2="900" y2="430"/>
+    <text class="label" x="82" y="435" text-anchor="end">0</text><text class="label" x="82" y="335" text-anchor="end">50</text><text class="label" x="82" y="235" text-anchor="end">100</text><text class="label" x="82" y="135" text-anchor="end">150</text>
+    <text class="label" x="20" y="250" transform="rotate(-90 20 250)" text-anchor="middle">decode tok/s</text>
+    <text class="label" x="150" y="458" text-anchor="middle">short</text><text class="label" x="380" y="458" text-anchor="middle">32K</text><text class="label" x="610" y="458" text-anchor="middle">80K</text><text class="label" x="840" y="458" text-anchor="middle">114K</text>
+  </g>
+  <path class="q5" d="M150 126.6 L380 189.4 L610 232.8 L840 240.7"/>
+  <circle class="q5p" cx="150" cy="126.6" r="6"/><circle class="q5p" cx="380" cy="189.4" r="6"/><circle class="q5p" cx="610" cy="232.8" r="6"/><circle class="q5p" cx="840" cy="240.7" r="6"/>
+  <text class="label" x="150" y="112" text-anchor="middle">151.72</text><text class="label" x="380" y="175" text-anchor="middle">120.29</text><text class="label" x="610" y="218" text-anchor="middle">98.59</text><text class="label" x="840" y="226" text-anchor="middle">94.66</text>
+  <path class="sg" d="M150 291.4 L610 308.4" stroke-dasharray="8 6"/>
+  <circle class="sgp" cx="150" cy="291.4" r="6"/><circle class="sgp" cx="610" cy="308.4" r="6"/>
+  <text class="label" x="150" y="278" text-anchor="middle">~69.3</text><text class="label" x="610" y="295" text-anchor="middle">~60.8</text>
+  <line class="q5" x1="585" y1="486" x2="625" y2="486"/><text class="label" x="635" y="491">Q5_K_M + llama.cpp + MTP3</text>
+  <line class="sg" x1="585" y1="510" x2="625" y2="510"/><text class="label" x="635" y="515">NVFP4 + SGLang</text>
+  <text class="note" x="110" y="495">Missing SGLang cells were not measured; dashed line does not imply interpolation.</text>
+</svg>

@@ -1,0 +1,31 @@
+# Local overrides and credentials
+.env
+.env.*
+!.env.example
+*.local.json
+*.local.ps1
+secrets/
+
+# Runtime output
+logs/
+artifacts/
+results/
+*.log
+*.ndjson
+
+# Model artifacts must never enter this repository
+*.gguf
+*.safetensors
+*.bin
+*.pt
+*.pth
+*.onnx
+*.engine
+
+# Tooling
+.venv/
+node_modules/
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db

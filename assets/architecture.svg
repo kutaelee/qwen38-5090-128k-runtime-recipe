@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="420" viewBox="0 0 960 420" role="img" aria-labelledby="title desc">
+  <title id="title">Workload-aware dual-runtime routing</title>
+  <desc id="desc">A task is classified as bounded or long. Bounded tasks use Q5 with llama.cpp and MTP3. Long tasks use NVFP4 with SGLang. Only one runtime is resident.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/>
+    </marker>
+    <style>
+      .box{fill:#f8fafc;stroke:#334155;stroke-width:2;rx:12}.bounded{fill:#ecfeff;stroke:#0e7490}.long{fill:#eef2ff;stroke:#4338ca}.gate{fill:#f0fdf4;stroke:#15803d}.t{font:600 18px system-ui,sans-serif;fill:#0f172a}.s{font:14px system-ui,sans-serif;fill:#334155}.line{stroke:#475569;stroke-width:2.5;fill:none;marker-end:url(#arrow)}
+    </style>
+  </defs>
+  <rect width="960" height="420" fill="#ffffff"/>
+  <rect class="box" x="350" y="25" width="260" height="72"/>
+  <text class="t" x="480" y="56" text-anchor="middle">Task packet</text>
+  <text class="s" x="480" y="79" text-anchor="middle">scope · acceptance · lifecycle</text>
+  <path class="line" d="M480 97 V142"/>
+  <rect class="box" x="350" y="142" width="260" height="72"/>
+  <text class="t" x="480" y="173" text-anchor="middle">Purpose classifier</text>
+  <text class="s" x="480" y="196" text-anchor="middle">select before model load</text>
+  <path class="line" d="M410 214 C390 250 290 250 235 280"/>
+  <path class="line" d="M550 214 C570 250 670 250 725 280"/>
+  <rect class="box bounded" x="55" y="280" width="360" height="100"/>
+  <text class="t" x="235" y="312" text-anchor="middle">Bounded / quick / tool-use</text>
+  <text class="s" x="235" y="338" text-anchor="middle">Q5_K_M · llama.cpp · Q8 K/V · MTP3</text>
+  <text class="s" x="235" y="362" text-anchor="middle">high decode throughput</text>
+  <rect class="box long" x="545" y="280" width="360" height="100"/>
+  <text class="t" x="725" y="312" text-anchor="middle">Complex / long / autonomous</text>
+  <text class="s" x="725" y="338" text-anchor="middle">NVFP4 · SGLang · FP8 KV · MTP off</text>
+  <text class="s" x="725" y="362" text-anchor="middle">long-context trajectory</text>
+  <rect class="gate" x="363" y="391" width="234" height="24" rx="12"/>
+  <text class="s" x="480" y="408" text-anchor="middle">one GPU · one resident runtime</text>
+</svg>
