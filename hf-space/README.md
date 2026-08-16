@@ -13,6 +13,17 @@ models:
   - Qwen/Qwen3.8-27B
   - RadixArk/Qwen3.8-27B-NVFP4
   - bartowski/Qwen3.8-27B-GGUF
+tags:
+  - qwen3
+  - qwen3-8
+  - rtx-5090
+  - local-llm
+  - sglang
+  - llama-cpp
+  - mtp
+  - nvfp4
+  - long-context
+  - coding-agent
 ---
 
 # Qwen3.8-27B on RTX 5090 — 128K Dual-Runtime Agent Recipe
@@ -28,7 +39,5 @@ This static showcase summarizes a reproducible single-GPU deployment recipe:
 Canonical source and scripts: <https://github.com/kutaelee/qwen38-5090-128k-runtime-recipe>
 
 Reproducibility discussion and issues: <https://github.com/kutaelee/qwen38-5090-128k-runtime-recipe/issues>
-
-Suggested discovery terms: `qwen3`, `qwen3.8`, `rtx-5090`, `llama.cpp`, `sglang`, `mtp`, `nvfp4`, `gguf`, `long-context`, `local-llm`, `coding-agent`.
 
 The 151.72 tok/s Q5 result did not beat the approximately 69 tok/s SGLang route in one counted autonomous coding trajectory. That is an N=1 trajectory result, not a general ranking of model formats.

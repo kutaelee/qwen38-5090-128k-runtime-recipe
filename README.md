@@ -1,6 +1,6 @@
 # Qwen3.8-27B on RTX 5090 — 128K Dual-Runtime Agent Recipe
 
-> **151 tok/s did not beat 69 tok/s on the same autonomous coding task.** This was one counted long-task run, not a general claim about Q5 quantization or every agent workload.
+> **The 151 tok/s Q5/MTP3 runtime still lost one autonomous coding run to the ~69 tok/s SGLang baseline.** This was one counted long-task run, not a general claim about Q5 quantization or every agent workload.
 
 **This repository does not contain modified model weights. It provides reproducible RTX 5090 inference configurations, benchmarks, and an agent-routing recipe for Qwen3.8-27B.**
 
