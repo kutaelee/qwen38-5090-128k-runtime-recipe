@@ -1,28 +1,32 @@
 {
-  "schema_version": 1,
-  "default_route": "bounded",
+  "schema_version": 2,
+  "default_route": "single-agent",
   "purpose_routes": {
-    "quick-code": "bounded",
-    "bounded-code": "bounded",
-    "tool-use": "bounded",
-    "complex-code": "long",
-    "long-context": "long",
-    "analysis": "long",
-    "autonomous": "long",
-    "long-running": "long",
-    "planning": "long",
-    "integration": "long"
+    "quick-code": "single-agent",
+    "bounded-code": "single-agent",
+    "tool-use": "single-agent",
+    "complex-code": "single-agent",
+    "long-context": "single-agent",
+    "autonomous": "single-agent",
+    "long-running": "single-agent",
+    "planning": "single-agent",
+    "integration": "single-agent",
+    "high-concurrency": "serving",
+    "multi-tenant": "serving",
+    "batch-serving": "serving"
   },
   "routes": {
-    "bounded": {
+    "single-agent": {
       "runtime": "llama.cpp-q5-mtp3",
       "endpoint": "http://127.0.0.1:8082/v1",
       "model": "<Q5_MODEL_ID>",
       "start": "powershell -File configs/llamacpp-q5-mtp3-128k.example.ps1",
-      "max_wall_minutes": 20,
-      "max_total_tools": 80
+      "qwen_code_settings": "configs/qwen-code-settings.example.json",
+      "requires_external_semantic_guard_for_deep_autonomous_runs": true,
+      "max_wall_minutes": 45,
+      "max_total_tools": 300
     },
-    "long": {
+    "serving": {
       "runtime": "sglang-nvfp4",
       "endpoint": "http://127.0.0.1:30000/v1",
       "model": "/models/models--RadixArk--Qwen3.8-27B-NVFP4/snapshots/52d1adc5f38aa5ebf099c29ed7025ba34cfbb854",
@@ -36,5 +40,10 @@
     "bind": "loopback-only",
     "stop_previous_before_start": true,
     "fail_closed_on_port_or_model_mismatch": true
+  },
+  "evidence_boundary": {
+    "q5_long_agent_status": "candidate",
+    "comparable_e2e_wall_time_captured": false,
+    "multi_seed_speed_ranking_complete": false
   }
 }
