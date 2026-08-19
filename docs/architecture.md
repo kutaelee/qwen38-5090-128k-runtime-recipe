@@ -7,8 +7,8 @@ task packet
     |
     v
 purpose classifier
-    |-- bounded / quick / tool-use --> llama.cpp Q5_K_M MTP3 :8082
-    `-- complex / long / analysis --> SGLang NVFP4 :30000
+    |-- single-agent long / bounded / quick --> llama.cpp Q5_K_M MTP3 :8082
+    `-- multi-tenant / high-concurrency     --> SGLang NVFP4 :30000
                                       
 selected loopback endpoint --> Qwen Code --> workspace tools
                                       |
@@ -23,8 +23,8 @@ The router is a lifecycle controller, not a load balancer. It never assumes enou
 3. stop only an owned server and confirm VRAM/port release;
 4. start one selected backend through a GPU scheduler;
 5. verify the exact model ID from `/v1/models`;
-6. run the agent with task-local settings;
-7. validate the output independently;
+6. run the agent with task-local settings (`skipLoopDetection: true`, external semantic guard);
+7. validate the output independently (`typecheck`, `lint`, `test`, `build`, `git diff --check`);
 8. stop and clean up unless residency was explicitly requested.
 
 ## Trust boundaries

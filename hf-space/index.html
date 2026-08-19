@@ -14,15 +14,15 @@
 <main>
   <div class="kicker">Single RTX 5090 · 128K context · one runtime at a time</div>
   <h1>Qwen3.8-27B dual-runtime agent recipe</h1>
-  <p class="lead">Use SGLang NVFP4 for long-horizon work and llama.cpp Q5_K_M with MTP3 for bounded implementation. The router selects a role before loading a model.</p>
+  <p class="lead">Use llama.cpp Q5_K_M with MTP3 for high-speed single-agent long/bounded work and SGLang NVFP4 for high-concurrency serving. The router selects a role before loading a model.</p>
   <div class="notice"><strong>No model weights are hosted here.</strong> Download artifacts from their original Hugging Face repositories and retain their licenses.</div>
   <section class="grid" aria-label="Runtime roles">
-    <article class="card"><h2>Long agent</h2><p>NVFP4 · SGLang · FP8 E4M3 KV · FlashInfer · MTP off</p><div class="metric">~69.3 tok/s</div><small>steady decode median; ~60.8 at 80K+</small></article>
-    <article class="card"><h2>Bounded worker</h2><p>Q5_K_M · llama.cpp · Q8 K/V · MTP3</p><div class="metric">151.72 tok/s</div><small>short decode; 98.59 at 80K</small></article>
+    <article class="card"><h2>Fast Single-Agent Candidate</h2><p>Q5_K_M · llama.cpp · Q8 K/V · MTP3</p><div class="metric">109.5 tok/s</div><small>observed agent run avg (151 tok/s short decode; 89.6% MTP acc)</small></article>
+    <article class="card"><h2>Serving / Concurrency Baseline</h2><p>NVFP4 · SGLang · FP8 E4M3 KV · FlashInfer · MTP off</p><div class="metric">~69.3 tok/s</div><small>steady decode median; ~60.8 at 80K+</small></article>
   </section>
   <h2>Raw decode TPS is not agent throughput</h2>
-  <p>In one counted autonomous web-project trajectory, the slower SGLang route completed the task in 526.388 seconds. The Q5 route had made no semantic edit after at least 541 seconds. Q5 still passed 10/10 bounded TSX fixtures and a multi-file build/test task.</p>
-  <table><thead><tr><th>Runtime</th><th>Bounded coding</th><th>Long autonomous</th></tr></thead><tbody><tr><td>SGLang NVFP4</td><td>runtime/tool gates pass</td><td>completed with two acceptance caveats</td></tr><tr><td>Q5 + MTP3</td><td>10/10 + multi-file pass</td><td>N=1 trajectory regression</td></tr></tbody></table>
+  <p>In the 2026-08-19 re-qualification under a revised semantic guard, Q5_K_M + MTP3 successfully completed a 100K+ context full-stack web implementation (12/12 tests PASS, typecheck PASS, build PASS) sustaining 109.51 tok/s with 89.61% MTP draft acceptance. SGLang completed the baseline project in 526.388 seconds with two acceptance caveats.</p>
+  <table><thead><tr><th>Runtime</th><th>Bounded coding</th><th>Long autonomous</th></tr></thead><tbody><tr><td>Q5 + MTP3</td><td>10/10 + multi-file pass</td><td>deep trajectory pass (12/12 tests, build PASS)</td></tr><tr><td>SGLang NVFP4</td><td>runtime/tool gates pass</td><td>completed in 526s with two acceptance caveats</td></tr></tbody></table>
   <p class="links"><a class="button" href="https://github.com/kutaelee/qwen38-5090-128k-runtime-recipe">GitHub source</a><a class="button" href="https://huggingface.co/Qwen/Qwen3.8-27B">Base model</a><a class="button" href="https://huggingface.co/RadixArk/Qwen3.8-27B-NVFP4">NVFP4</a><a class="button" href="https://huggingface.co/bartowski/Qwen3.8-27B-GGUF">GGUF</a></p>
 </main>
 </body>

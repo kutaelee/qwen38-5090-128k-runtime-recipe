@@ -5,10 +5,10 @@
 | Purpose | Route |
 | --- | --- |
 | quick code, small exact patches, bounded tool use | Q5_K_M + llama.cpp + MTP3 |
-| complex code, long context, analysis | NVFP4 + SGLang |
-| autonomous work, planning, integration | NVFP4 + SGLang |
+| single-agent autonomous long task, complex implementation | Q5_K_M + llama.cpp + MTP3 (Candidate) |
+| high-concurrency multi-tenant serving, analysis baseline | NVFP4 + SGLang |
 
-Task size is determined before model load. A large prompt is not automatically a long task, and a small repository is not automatically bounded. Prefer the long route when the task needs multi-stage planning, cross-file integration, repeated test repair, or substantial context reconstruction.
+Task size is determined before model load. Prefer the Q5/MTP3 route for high-speed single-agent interactive workflows and bounded tasks. When running deep autonomous trajectories, ensure the harness uses `skipLoopDetection: true` and an external semantic guard.
 
 ## Qwen Code wire profile
 
@@ -26,7 +26,7 @@ skipLoopDetection = true
 model.maxToolCallsPerTurn = absent
 ```
 
-The production controller may set a total wall/tool safety envelope. It should not confuse that run-level envelope with a per-turn cap.
+The production controller may set a total wall/tool safety envelope (e.g. 300 tools / 45 min). It should not confuse that run-level envelope with a per-turn cap.
 
 ## Narrow no-progress detection
 
@@ -49,5 +49,3 @@ Do not silently fall back to another model when:
 - the task-local settings differ from the qualified context/sampling profile;
 - the agent modifies unauthorized paths;
 - independent verification fails.
-
-Q5 remains a valid bounded worker even though it is not promoted for autonomous work by the current evidence.

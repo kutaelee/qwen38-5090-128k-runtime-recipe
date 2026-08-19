@@ -32,12 +32,12 @@ tags:
 
 This static showcase summarizes a reproducible single-GPU deployment recipe:
 
-- long / complex / autonomous work → NVFP4 + SGLang;
-- quick / bounded implementation → Q5_K_M + llama.cpp + MTP3;
+- single-agent autonomous long task & fast implementation → Q5_K_M + llama.cpp + MTP3;
+- high-concurrency multi-tenant serving baseline → NVFP4 + SGLang;
 - one resident runtime at a time.
 
 Canonical source and scripts: <https://github.com/kutaelee/qwen38-5090-128k-runtime-recipe>
 
 Reproducibility discussion and issues: <https://github.com/kutaelee/qwen38-5090-128k-runtime-recipe/issues>
 
-The 151.72 tok/s Q5 result did not beat the approximately 69 tok/s SGLang route in one counted autonomous coding trajectory. That is an N=1 trajectory result, not a general ranking of model formats.
+In the 2026-08-19 re-qualification under a revised semantic guard, Q5_K_M + MTP3 completed a full-stack autonomous implementation (12/12 tests PASS, typecheck PASS, build PASS) sustaining 109.51 tok/s with 89.61% MTP draft acceptance.

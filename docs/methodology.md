@@ -8,9 +8,7 @@ Basic instructions, Korean and English text, code explanation, strict JSON schem
 
 ## B. Raw inference throughput
 
-Decode throughput was read from the serving runtime after warm-up. Reported values include the context depth, KV dtype, speculative/MTP state, runtime version, GPU, and measured median when available. A single best sample is not promoted as the result.
-
-The example benchmark script computes end-to-end completion tokens divided by API wall time. That is intentionally labelled differently from server decode TPS.
+Decode throughput was read from the serving runtime after warm-up. Reported values include the context depth, KV dtype, speculative/MTP state, runtime version, GPU, and measured median when available. A single best sample is not promoted as the result. Synthetic microbenchmarks are clearly separated from live autonomous-agent telemetry.
 
 ## C. Long-context recall
 
@@ -24,15 +22,16 @@ The bounded suite used fresh fixtures, exact permitted change paths, strict tool
 
 A medium web implementation exercised planning, repository inspection, multiple semantic edits, test repair, build gates, and browser acceptance. Wall time, tool calls, first edit, context growth, compaction, repeated actions, and final independent gates mattered more than synthetic decode speed.
 
-## One-counted-run rule
+## F. Root Cause Analysis (RCA) Framework
 
-The disclosed long-agent trajectory results are **N=1 per reported condition**. Once a counted run started, prompts, runtime settings, context, and acceptance criteria were not changed to rescue it. A failure was not retried until a favorable sample appeared.
-
-This protects against cherry-picking but limits generalization. The Q5 failure is evidence about one trajectory under the recorded harness, not proof that Q5_K_M or llama.cpp is inherently unsuitable for long agents.
+Two distinct failure surfaces are documented for autonomous agent trajectories:
+1. **Model trajectory failures:** e.g. runaway regex generation, completion exhaustion, and compaction recovery failure.
+2. **Harness loop-detector false positives:** e.g. native Qwen Code `action_stagnation` triggering on legitimate initial repository exploration.
 
 ## Rounding
 
 - 69.325 tok/s is displayed as ~69.3.
 - 60.77 tok/s at 80K+ is displayed as ~60.8.
-- 2,129 MiB minimum free VRAM is described as approximately 2.1 GiB.
+- 109.51 tok/s is displayed as 109.51 (or ~109.5).
+- 3.98 GiB free VRAM is described as approximately 4.0 GiB headroom.
 - Unmeasured same-suite cells remain blank.

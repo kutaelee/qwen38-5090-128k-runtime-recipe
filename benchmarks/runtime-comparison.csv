@@ -5,3 +5,4 @@ Q5 llama.cpp MTP3,Q5_K_M,short,,151.72,Q8_0 K/V,draft-mtp n=3,bounded worker,qua
 Q5 llama.cpp MTP3,Q5_K_M,32K,32000,120.29,Q8_0 K/V,draft-mtp n=3,bounded worker,qualified runtime result
 Q5 llama.cpp MTP3,Q5_K_M,80K,80000,98.59,Q8_0 K/V,draft-mtp n=3,bounded worker,qualified runtime result
 Q5 llama.cpp MTP3,Q5_K_M,113.9K,113900,94.66,Q8_0 K/V,draft-mtp n=3,bounded worker,qualified runtime result
+Q5 llama.cpp MTP3,Q5_K_M,agent-observed-avg,106829,109.51,Q8_0 K/V,draft-mtp n=3,autonomous long agent,100K+ context trajectory live Prometheus average
