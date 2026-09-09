@@ -14,8 +14,11 @@ $required = @(
     'README.md', 'LICENSE', 'SECURITY.md', '.gitignore', 'AGENTS.md',
     'configs\sglang-nvfp4-128k.example.sh',
     'configs\llamacpp-q5-mtp3-128k.example.ps1',
+    'configs\ninfer-nvfp4-mtp3.example.sh',
     'configs\qwen-code-settings.example.json',
     'configs\local-model-router.example.json',
+    'scripts\Start-NInferQwen38.ps1',
+    'scripts\Stop-NInferQwen38.ps1',
     'benchmarks\runtime-comparison.csv',
     'assets\architecture.svg', 'assets\performance-chart.svg',
     'hf-space\README.md', 'hf-space\index.html', 'social\x-thread-ko.md'
@@ -64,11 +67,11 @@ foreach ($file in $files) {
     }
 }
 
-$trackedWeights = @(& git -C $root ls-files 2>$null | Where-Object { $_ -match '(?i)\.(gguf|safetensors|bin|pt|pth|onnx|engine)$' })
+$trackedWeights = @(& git -C $root ls-files 2>$null | Where-Object { $_ -match '(?i)\.(gguf|safetensors|bin|pt|pth|onnx|engine|ninfer)$' })
 if ($trackedWeights.Count) { Add-Failure 'model-weight-file-tracked' }
 
 if (Test-Path -LiteralPath (Join-Path $root '.git')) {
-    $historyNames = @(& git -C $root log --all --name-only --pretty=format: 2>$null | Where-Object { $_ -match '(?i)\.(gguf|safetensors|bin|pt|pth|onnx|engine)$' })
+    $historyNames = @(& git -C $root log --all --name-only --pretty=format: 2>$null | Where-Object { $_ -match '(?i)\.(gguf|safetensors|bin|pt|pth|onnx|engine|ninfer)$' })
     if ($historyNames.Count) { Add-Failure 'model-weight-file-in-history' }
 }
 

@@ -4,11 +4,11 @@
 
 | Purpose | Route |
 | --- | --- |
-| quick code, small exact patches, bounded tool use | Q5_K_M + llama.cpp + MTP3 |
-| single-agent autonomous long task, complex implementation | Q5_K_M + llama.cpp + MTP3 (Candidate) |
+| quick code, bounded tool use, complex or autonomous single-agent work | NInfer NVFP4 + FP8 KV + MTP3 |
+| explicit rollback after a reviewed NInfer startup/integration failure | Q5_K_M + llama.cpp + MTP3 |
 | high-concurrency multi-tenant serving, analysis baseline | NVFP4 + SGLang |
 
-Task size is determined before model load. Prefer the Q5/MTP3 route for high-speed single-agent interactive workflows and bounded tasks. When running deep autonomous trajectories, ensure the harness uses `skipLoopDetection: true` and an external semantic guard.
+Task purpose is determined before model load. NInfer is the default single-agent route; llama.cpp is an explicit fallback rather than a silent recovery path. When running deep autonomous trajectories, the existing harness still uses `skipLoopDetection: true` and the same external semantic guard.
 
 ## Qwen Code wire profile
 
@@ -27,6 +27,8 @@ model.maxToolCallsPerTurn = absent
 ```
 
 The production controller may set a total wall/tool safety envelope (e.g. 300 tools / 45 min). It should not confuse that run-level envelope with a per-turn cap.
+
+The NInfer server may expose a 240,000-token logical ceiling, but this does not raise the Qwen Code operating ceiling. `contextWindowSize = 120000` and `autoCompactThreshold = 0.7` remain unchanged.
 
 ## Narrow no-progress detection
 
@@ -49,3 +51,5 @@ Do not silently fall back to another model when:
 - the task-local settings differ from the qualified context/sampling profile;
 - the agent modifies unauthorized paths;
 - independent verification fails.
+
+An NInfer startup failure is reported directly. Selecting `single-agent-fallback` is an explicit operator decision; the router does not hide the failure by automatically switching runtimes.

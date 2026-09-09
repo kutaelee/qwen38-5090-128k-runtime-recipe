@@ -1,4 +1,4 @@
-# Qwen3.8-27B on RTX 5090 — 128K Dual-Runtime Agent Recipe
+# Qwen3.8-27B on RTX 5090 — 128K Multi-Runtime Agent Recipe
 
 > **Q5_K_M + MTP3 sustained ~109.5 tok/s during a 100K+ autonomous coding trajectory on a single RTX 5090, with 89.6% speculative acceptance.** A previous long-agent rejection was not reproduced under the revised semantic guard, while final production promotion remains gated on comparable end-to-end wall-time measurement across multiple seeds.
 
@@ -10,10 +10,11 @@
 
 ## 1. Overview
 
-This recipe runs Qwen3.8-27B at a 131,072-token server context on one 32 GB RTX 5090. It does not keep two models resident at once. A task router stops and cleans up the previous runtime, then starts exactly one of two loopback-only backends:
+This recipe runs Qwen3.8-27B on one 32 GB RTX 5090 without keeping multiple generation runtimes resident. A task router stops and cleans up the previous runtime, then starts exactly one loopback-only backend:
 
-- **Single-agent long / complex candidate:** `bartowski/Qwen3.8-27B-GGUF` (`Qwen3.8-27B-Q5_K_M.gguf`) on llama.cpp with Q8_0 K/V and MTP3.
-- **High-concurrency / serving baseline:** `RadixArk/Qwen3.8-27B-NVFP4` on SGLang with FP8 E4M3 KV, FlashInfer, and MTP off.
+- **Primary single-agent:** `neroued/Qwen3.8-27B-nvfp4-NInfer` on NInfer with FP8 KV and MTP3. The runtime has a 240,000-token logical ceiling while Qwen Code retains its existing 120,000-token operating ceiling and 0.7 auto-compaction policy.
+- **Explicit rollback fallback:** `bartowski/Qwen3.8-27B-GGUF` (`Qwen3.8-27B-Q5_K_M.gguf`) on llama.cpp with Q8_0 K/V and MTP3.
+- **Serving / concurrency:** `RadixArk/Qwen3.8-27B-NVFP4` on SGLang with FP8 E4M3 KV, FlashInfer, and MTP off.
 
 The central finding is not a top-line TPS record:
 
@@ -21,14 +22,14 @@ The central finding is not a top-line TPS record:
 
 The Q5/MTP3 route decoded roughly 1.5–2× faster in runtime benchmarks and was accurate on bounded coding. In a re-qualification under a revised semantic guard, Q5/MTP3 completed a 100K+ context autonomous web project (12/12 tests PASS, typecheck PASS, build PASS) at ~109.5 tok/s average decode.
 
-## 2. Why two runtimes?
+## 2. Why three runtime roles?
 
-The two backends optimize different failure surfaces.
+The roles separate single-agent execution, rollback, and concurrent serving without simultaneous GPU residency.
 
 | Workload | Selected runtime | Reason |
 | --- | --- | --- |
-| `quick-code`, bounded edits, structured tool use | Q5_K_M + llama.cpp + MTP3 | High decode throughput (151 tok/s short, 109 tok/s in agent run), 10/10 single-file qualification, multi-file build/test pass |
-| `single-agent-long`, autonomous web implementation | Q5_K_M + llama.cpp + MTP3 (Candidate) | Demonstrated deep autonomous implementation (12/12 tests PASS, typecheck PASS, build PASS) under revised guard |
+| single-agent quick, bounded, complex, long, autonomous, planning, integration | NInfer NVFP4 + FP8 KV + MTP3 | Primary WSL2 single-agent route selected from upstream RTX 5090 evidence; local comparison was not rerun for this integration |
+| explicit single-agent rollback | Q5_K_M + llama.cpp + MTP3 | Existing locally measured runtime and agent qualification remain intact |
 | `high-concurrency`, multi-tenant serving, analysis | NVFP4 + SGLang | Stable 80K+ context serving baseline and FlashInfer chunked prefill |
 
 This is a **workload-aware routing result**, not a claim that either artifact is universally better.
@@ -39,12 +40,47 @@ This is a **workload-aware routing result**, not a claim that either artifact is
 | --- | --- |
 | GPU | NVIDIA GeForce RTX 5090, 32,607 MiB reported |
 | Driver | 610.74 |
-| Host | Windows with WSL2/Docker for SGLang; native Windows CUDA for llama.cpp |
+| Host | Windows with WSL2/Linux for NInfer, WSL2/Docker for SGLang, and native Windows CUDA for llama.cpp |
 | Concurrency | One generation runtime, one request, one GPU |
 
 No model weights are stored in this repository. See [Upstream models/projects](#11-upstream-modelsprojects).
 
-## 4. Runtime A — SGLang NVFP4
+## 4. Primary runtime — NInfer NVFP4 + MTP3
+
+Integration profile:
+
+- Runtime source: [`Neroued/ninfer`](https://github.com/Neroued/ninfer), pinned integration revision [`a16b6442…c750`](https://github.com/Neroued/ninfer/commit/a16b6442856620b7e4856acb25215acbf7e3c750)
+- Artifact: [`neroued/Qwen3.8-27B-nvfp4-NInfer`](https://huggingface.co/neroued/Qwen3.8-27B-nvfp4-NInfer), revision [`11dbbbbb…31be`](https://huggingface.co/neroued/Qwen3.8-27B-nvfp4-NInfer/tree/11dbbbbbc33db198afe2f02c9232c771ff7031be)
+- File: `qwen3_8_27b_nvfp4.ninfer`; SHA-256 `552c374c685dce302603b95fbe940fb04243c0cd44c083efc644ad3d980d462c`
+- Linux/WSL2, RTX 5090 (`sm_120a`), CUDA Toolkit 13.1 or newer, source build
+- OpenAI-compatible loopback serving on `127.0.0.1:8083`
+- NVFP4 weights, FP8 KV, MTP3, optimized proposal head, concurrency 1
+- Runtime context and KV capacity: 240,000 tokens
+- Qwen Code operating context: 120,000 tokens; existing 0.7 auto-compaction and non-thinking request policy retained
+
+See [`configs/ninfer-nvfp4-mtp3.example.sh`](configs/ninfer-nvfp4-mtp3.example.sh). [Local integration smoke results](benchmarks/ninfer-integration-2026-09-08.md) document startup, successful Codex Responses calls through a compatibility adapter, and the remaining lifecycle check. This is not a performance or long-agent qualification.
+
+On this workstation pattern, [`scripts/Start-NInferQwen38.ps1`](scripts/Start-NInferQwen38.ps1) submits the WSL server through `gpuq`; it does not bypass GPU ownership or silently stop another runtime. GPUQ operators can allowlist [`scripts/Stop-NInferQwen38.ps1`](scripts/Stop-NInferQwen38.ps1) as the exact cleanup command for this workload so WSL cancellation does not orphan the Linux/CUDA worker.
+
+## 5. Fallback runtime — llama.cpp Q5 + MTP3
+
+The existing measured single-agent runtime remains available only by explicit route selection. Its artifact identity, launch options, and evidence are unchanged.
+
+Tested configuration:
+
+- Artifact repository: [`bartowski/Qwen3.8-27B-GGUF`](https://huggingface.co/bartowski/Qwen3.8-27B-GGUF), tested revision [`f0eec4a4…c034`](https://huggingface.co/bartowski/Qwen3.8-27B-GGUF/tree/f0eec4a4bb4975114a030d048952d83c0a53c034)
+- File: `Qwen3.8-27B-Q5_K_M.gguf`
+- File SHA-256: `E731E180460B906F373294A4E2DE10541E80EE676AF7F8C949A84DBB6ED3CAA8`
+- llama.cpp build 10435, commit [`9e40df63…7e99`](https://github.com/ggml-org/llama.cpp/commit/9e40df63ba151d771d8b247ac4011cf203337e99)
+- Server context: 131,072
+- KV: Q8_0 K and Q8_0 V
+- Flash Attention on; all 66/66 layers on GPU; CPU fallback 0
+- `parallel=1`, `batch=2048`, `ubatch=512`, vision off
+- MTP3: `--spec-type draft-mtp --spec-draft-n-max 3`
+
+Peak qualification retained approximately **3.98 GiB free VRAM** (28.63 GB peak used). See [`configs/llamacpp-q5-mtp3-128k.example.ps1`](configs/llamacpp-q5-mtp3-128k.example.ps1).
+
+## 6. Serving runtime — SGLang NVFP4
 
 Tested configuration:
 
@@ -61,23 +97,7 @@ Tested configuration:
 
 Measured steady decode median was approximately **69.3 tok/s**; at 80K+ context it was approximately **60.8 tok/s**. See [`configs/sglang-nvfp4-128k.example.sh`](configs/sglang-nvfp4-128k.example.sh).
 
-## 5. Runtime B — llama.cpp Q5 + MTP3
-
-Tested configuration:
-
-- Artifact repository: [`bartowski/Qwen3.8-27B-GGUF`](https://huggingface.co/bartowski/Qwen3.8-27B-GGUF), tested revision [`f0eec4a4…c034`](https://huggingface.co/bartowski/Qwen3.8-27B-GGUF/tree/f0eec4a4bb4975114a030d048952d83c0a53c034)
-- File: `Qwen3.8-27B-Q5_K_M.gguf`
-- File SHA-256: `E731E180460B906F373294A4E2DE10541E80EE676AF7F8C949A84DBB6ED3CAA8`
-- llama.cpp build 10435, commit [`9e40df63…7e99`](https://github.com/ggml-org/llama.cpp/commit/9e40df63ba151d771d8b247ac4011cf203337e99)
-- Server context: 131,072
-- KV: Q8_0 K and Q8_0 V
-- Flash Attention on; all 66/66 layers on GPU; CPU fallback 0
-- `parallel=1`, `batch=2048`, `ubatch=512`, vision off
-- MTP3: `--spec-type draft-mtp --spec-draft-n-max 3`
-
-Peak qualification retained approximately **3.98 GiB free VRAM** (28.63 GB peak used). See [`configs/llamacpp-q5-mtp3-128k.example.ps1`](configs/llamacpp-q5-mtp3-128k.example.ps1).
-
-## 6. Benchmark results
+## 7. Existing benchmark results
 
 ### A. Synthetic / Serving Throughput vs Context Depth
 
@@ -98,7 +118,7 @@ Peak qualification retained approximately **3.98 GiB free VRAM** (28.63 GB peak 
 
 Missing cells were not measured under the same published suite and are intentionally left blank. See [methodology](docs/methodology.md) and the machine-readable [`runtime-comparison.csv`](benchmarks/runtime-comparison.csv).
 
-## 7. Agent qualification
+## 8. Existing agent qualification
 
 | Runtime | Bounded coding | Long autonomous |
 | --- | --- | --- |
@@ -115,32 +135,32 @@ Two distinct failure surfaces have now been observed:
 
 With an external semantic guard and the native detector bypassed (`skipLoopDetection: true`), Q5/MTP3 completed a substantially deeper autonomous implementation trajectory in the latest qualification.
 
-## 8. Routing strategy
+## 9. Routing strategy
 
 The example router is data-only and intentionally small: [`configs/local-model-router.example.json`](configs/local-model-router.example.json). A production controller should:
 
-1. Classify the bounded task before loading a model.
+1. Classify the task before loading a model; NInfer is the default single-agent route.
 2. Stop only the runtime it owns and verify its port/VRAM were released.
 3. Start the selected runtime through the machine's GPU scheduler.
-4. Verify `/v1/models` returns the expected immutable model ID.
+4. Verify `/v1/models` returns the expected model ID; fail closed on a port or model mismatch.
 5. Run Qwen Code with task-local settings (`skipLoopDetection: true`, external semantic guard).
 6. Independently validate the diff and acceptance gates.
 
 See [agent routing](docs/agent-routing.md) for failure handling and lifecycle boundaries.
 
-## 9. Reproduction
+## 10. Reproduction
 
 1. Obtain model artifacts directly from the upstream repositories. Do not copy them into this repository.
 2. Verify the exact revision and, for the tested GGUF, the file SHA-256 shown above.
-3. Build or install the pinned runtimes.
+3. Build the pinned NInfer source in WSL2/Linux or install the existing pinned fallback/serving runtimes.
 4. Adapt the generic model/cache paths in `configs/`; retain loopback-only publishing.
 5. Start only one backend.
 6. Run `scripts/healthcheck.example.ps1` against `/v1/models`.
-7. Run correctness before throughput, then bounded and long-agent suites separately.
+7. For a new local qualification, run correctness before throughput, then bounded and long-agent suites separately. No such benchmark was rerun for this integration.
 
 Full steps and evidence requirements are in [reproducibility.md](docs/reproducibility.md).
 
-## 10. Limitations
+## 11. Limitations
 
 - The hardware sample is one RTX 5090 system.
 - The long-agent comparison contains counted trajectories per reported runtime condition; it is not a statistical model-quality benchmark across multiple seeds.
@@ -148,16 +168,19 @@ Full steps and evidence requirements are in [reproducibility.md](docs/reproducib
 - SGLang and Q5 measurements do not populate every identical context depth.
 - Driver, kernels, model revisions, runtime commits, and agent versions can materially change results.
 - No vision path was tested in these recipes.
+- **NInfer is the primary runtime selected from upstream RTX 5090 evidence; local comparative benchmark not rerun for this integration.** The [smoke report](benchmarks/ninfer-integration-2026-09-08.md) records startup allocation and request timings only; it does not establish sustained throughput, tool correctness or agent completion.
 
 More detail: [limitations.md](docs/limitations.md).
 
-## 11. Upstream models/projects
+## 12. Upstream models/projects
 
 This project does not own, modify, sublicense, or redistribute the linked model weights.
 
 - [`Qwen/Qwen3.8-27B`](https://huggingface.co/Qwen/Qwen3.8-27B) — base model, Apache-2.0 metadata
 - [`RadixArk/Qwen3.8-27B-NVFP4`](https://huggingface.co/RadixArk/Qwen3.8-27B-NVFP4) — NVFP4 artifact, Apache-2.0 metadata
 - [`bartowski/Qwen3.8-27B-GGUF`](https://huggingface.co/bartowski/Qwen3.8-27B-GGUF) — GGUF artifact, Apache-2.0 metadata
+- [`neroued/Qwen3.8-27B-nvfp4-NInfer`](https://huggingface.co/neroued/Qwen3.8-27B-nvfp4-NInfer) — NInfer artifact, Apache-2.0 metadata
+- [`Neroued/ninfer`](https://github.com/Neroued/ninfer) — NInfer runtime, Apache-2.0
 - [`ggml-org/llama.cpp`](https://github.com/ggml-org/llama.cpp) — MIT
 - [`sgl-project/sglang`](https://github.com/sgl-project/sglang) — Apache-2.0
 - [`QwenLM/qwen-code`](https://github.com/QwenLM/qwen-code) — Apache-2.0

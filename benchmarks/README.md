@@ -4,5 +4,6 @@ This directory contains public aggregate results only. Raw prompts, source repos
 
 - [`runtime-comparison.md`](runtime-comparison.md): human-readable interpretation
 - [`runtime-comparison.csv`](runtime-comparison.csv): machine-readable measured cells
+- [`ninfer-integration-2026-09-08.md`](ninfer-integration-2026-09-08.md): startup and Codex connectivity smoke evidence, compatibility failures and lifecycle limitations; not a throughput benchmark
 
 Blank measurements are represented as empty CSV fields, never estimated values.

@@ -7,7 +7,8 @@ task packet
     |
     v
 purpose classifier
-    |-- single-agent long / bounded / quick --> llama.cpp Q5_K_M MTP3 :8082
+    |-- single-agent primary                --> NInfer NVFP4 MTP3 :8083
+    |-- explicit single-agent fallback      --> llama.cpp Q5_K_M MTP3 :8082
     `-- multi-tenant / high-concurrency     --> SGLang NVFP4 :30000
                                       
 selected loopback endpoint --> Qwen Code --> workspace tools
@@ -37,4 +38,4 @@ The router is a lifecycle controller, not a load balancer. It never assumes enou
 
 ## Runtime isolation
 
-SGLang runs in WSL2/Docker with an ext4-native Hugging Face cache. llama.cpp runs as a Windows CUDA binary against a Windows-native GGUF. Crossing the WSL `/mnt/*` boundary for multi-gigabyte weights is deliberately avoided.
+NInfer is built and run in WSL2/Linux from `~/src/ninfer` against an ext4-native `.ninfer` artifact. SGLang runs in WSL2/Docker with an ext4-native Hugging Face cache. llama.cpp runs as a Windows CUDA binary against a Windows-native GGUF. Crossing the WSL `/mnt/*` boundary for multi-gigabyte weights is deliberately avoided.

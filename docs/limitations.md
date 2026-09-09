@@ -4,8 +4,8 @@
 
 - One RTX 5090 with 32,607 MiB reported VRAM
 - One driver and OS/WSL environment
-- One pinned NVFP4 checkpoint revision and one pinned Q5_K_M GGUF revision
-- One SGLang image and one llama.cpp commit
+- One pinned NInfer artifact integration revision, one pinned SGLang NVFP4 checkpoint revision, and one pinned Q5_K_M GGUF revision
+- One NInfer source revision, one SGLang image, and one llama.cpp commit
 - Sequential, single-request serving
 - Text/tool/coding workloads; vision disabled
 
@@ -25,7 +25,8 @@ Neither outcome should be generalized into a universal model-quality ranking. Ag
 ## Operational constraints
 
 - The examples do not implement a universal cross-platform GPU scheduler.
-- Both 27B runtimes are not intended to remain resident simultaneously on a 32 GB card.
+- Multiple 27B generation runtimes are not intended to remain resident simultaneously on a 32 GB card.
 - The SGLang checkpoint's upstream repository has moved beyond the tested revision; the recipe pins the tested revision.
 - MTP was not enabled for the 128K SGLang role.
 - Q5/MTP3 free-VRAM headroom is a measured peak value (28.63 GB peak used, ~3.98 GiB free), not a guarantee for every driver or display workload.
+- NInfer's [local smoke report](../benchmarks/ninfer-integration-2026-09-08.md) covers startup and Codex adapter connectivity. Sustained throughput, tool correctness, long-context workloads and agent completion were not evaluated. Automatic cancellation of a live instance after the cleanup change remains unverified.

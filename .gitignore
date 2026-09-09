@@ -21,6 +21,7 @@ results/
 *.pth
 *.onnx
 *.engine
+*.ninfer
 
 # Tooling
 .venv/

@@ -1,20 +1,30 @@
 {
   "schema_version": 1,
-  "default_route": "bounded",
+  "default_route": "single-agent-ninfer",
   "purpose_routes": {
-    "quick-code": "bounded",
-    "bounded-code": "bounded",
-    "tool-use": "bounded",
-    "complex-code": "long",
-    "long-context": "long",
-    "analysis": "long",
-    "autonomous": "long",
-    "long-running": "long",
-    "planning": "long",
-    "integration": "long"
+    "quick-code": "single-agent-ninfer",
+    "bounded-code": "single-agent-ninfer",
+    "tool-use": "single-agent-ninfer",
+    "complex-code": "single-agent-ninfer",
+    "long-context": "single-agent-ninfer",
+    "analysis": "serving",
+    "autonomous": "single-agent-ninfer",
+    "long-running": "single-agent-ninfer",
+    "planning": "single-agent-ninfer",
+    "integration": "single-agent-ninfer"
   },
   "routes": {
-    "bounded": {
+    "single-agent-ninfer": {
+      "runtime": "ninfer-nvfp4-mtp3",
+      "endpoint": "http://127.0.0.1:8083/v1",
+      "model": "qwen3.8-27b",
+      "start": "bash configs/ninfer-nvfp4-mtp3.example.sh",
+      "qwen_code_settings": "configs/qwen-code-settings.example.json",
+      "requires_external_semantic_guard_for_deep_autonomous_runs": true,
+      "max_wall_minutes": 45,
+      "max_total_tools": 300
+    },
+    "single-agent-fallback": {
       "runtime": "llama.cpp-q5-mtp3",
       "endpoint": "http://127.0.0.1:8082/v1",
       "model": "<Q5_MODEL_ID>",
@@ -22,7 +32,7 @@
       "max_wall_minutes": 20,
       "max_total_tools": 80
     },
-    "long": {
+    "serving": {
       "runtime": "sglang-nvfp4",
       "endpoint": "http://127.0.0.1:30000/v1",
       "model": "/models/models--RadixArk--Qwen3.8-27B-NVFP4/snapshots/52d1adc5f38aa5ebf099c29ed7025ba34cfbb854",
@@ -35,6 +45,7 @@
     "simultaneous_residency": false,
     "bind": "loopback-only",
     "stop_previous_before_start": true,
-    "fail_closed_on_port_or_model_mismatch": true
+    "fail_closed_on_port_or_model_mismatch": true,
+    "automatic_fallback": false
   }
 }
