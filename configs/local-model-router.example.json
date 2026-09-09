@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "default_route": "single-agent-ninfer",
   "purpose_routes": {
     "quick-code": "single-agent-ninfer",
@@ -11,7 +11,10 @@
     "autonomous": "single-agent-ninfer",
     "long-running": "single-agent-ninfer",
     "planning": "single-agent-ninfer",
-    "integration": "single-agent-ninfer"
+    "integration": "single-agent-ninfer",
+    "high-concurrency": "serving",
+    "multi-tenant": "serving",
+    "batch-serving": "serving"
   },
   "routes": {
     "single-agent-ninfer": {
@@ -29,8 +32,10 @@
       "endpoint": "http://127.0.0.1:8082/v1",
       "model": "<Q5_MODEL_ID>",
       "start": "powershell -File configs/llamacpp-q5-mtp3-128k.example.ps1",
-      "max_wall_minutes": 20,
-      "max_total_tools": 80
+      "qwen_code_settings": "configs/qwen-code-settings.example.json",
+      "requires_external_semantic_guard_for_deep_autonomous_runs": true,
+      "max_wall_minutes": 45,
+      "max_total_tools": 300
     },
     "serving": {
       "runtime": "sglang-nvfp4",
@@ -47,5 +52,10 @@
     "stop_previous_before_start": true,
     "fail_closed_on_port_or_model_mismatch": true,
     "automatic_fallback": false
+  },
+  "evidence_boundary": {
+    "q5_long_agent_status": "candidate",
+    "comparable_e2e_wall_time_captured": false,
+    "multi_seed_speed_ranking_complete": false
   }
 }

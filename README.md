@@ -1,6 +1,6 @@
 # Qwen3.8-27B on RTX 5090 — 128K Multi-Runtime Agent Recipe
 
-> **Q5_K_M + MTP3 sustained ~109.5 tok/s during a 100K+ autonomous coding trajectory on a single RTX 5090, with 89.6% speculative acceptance.** A previous long-agent rejection was not reproduced under the revised semantic guard, while final production promotion remains gated on comparable end-to-end wall-time measurement across multiple seeds.
+> **Q5_K_M + MTP3 sustained ~109.5 tok/s during a 100K+ autonomous coding trajectory on a single RTX 5090, with 89.6% speculative acceptance.** A previous long-agent rejection was not reproduced under the revised semantic guard, while final production speed ranking remains gated on comparable end-to-end wall-time measurement across multiple seeds.
 
 **This repository does not contain modified model weights. It provides reproducible RTX 5090 inference configurations, benchmarks, and an agent-routing recipe for Qwen3.8-27B.**
 
@@ -20,7 +20,7 @@ The central finding is not a top-line TPS record:
 
 > **Raw decode TPS is not agent throughput.**
 
-The Q5/MTP3 route decoded roughly 1.5–2× faster in runtime benchmarks and was accurate on bounded coding. In a re-qualification under a revised semantic guard, Q5/MTP3 completed a 100K+ context autonomous web project (12/12 tests PASS, typecheck PASS, build PASS) at ~109.5 tok/s average decode.
+The Q5/MTP3 route decoded roughly 1.5–2× faster in runtime benchmarks and was accurate on bounded coding. In the 2026-08-19 re-qualification, it executed a 100K+ autonomous implementation trajectory at ~109.5 tok/s average decode; post-run canonical acceptance reached `typecheck PASS`, `lint PASS`, `build PASS`, and `vitest 12/12 PASS` after correcting test-harness cleanup issues.
 
 ## 2. Why three runtime roles?
 
@@ -43,7 +43,7 @@ This is a **workload-aware routing result**, not a claim that either artifact is
 | Host | Windows with WSL2/Linux for NInfer, WSL2/Docker for SGLang, and native Windows CUDA for llama.cpp |
 | Concurrency | One generation runtime, one request, one GPU |
 
-No model weights are stored in this repository. See [Upstream models/projects](#11-upstream-modelsprojects).
+No model weights are stored in this repository. See [Upstream models/projects](#12-upstream-modelsprojects).
 
 ## 4. Primary runtime — NInfer NVFP4 + MTP3
 
@@ -123,7 +123,7 @@ Missing cells were not measured under the same published suite and are intention
 | Runtime | Bounded coding | Long autonomous |
 | --- | --- | --- |
 | SGLang NVFP4 | Runtime/tool correctness passed | Medium web task completed in 526.388 s; build gates and major browser flows passed; final implementation gate failed on one unauthorized generated-file change and mobile Sheet focus restoration |
-| Q5 + MTP3 | 10/10 TSX fixtures plus multi-file build/test 2/2 passed | **Historical run:** Rejected after 541 s without semantic edit (oversized regex).<br>**Re-qualification (2026-08-19):** Deep trajectory completed under revised semantic guard; `typecheck PASS`, `lint PASS`, `build PASS`, `vitest 12/12 PASS`. |
+| Q5 + MTP3 | 10/10 TSX fixtures plus multi-file build/test 2/2 passed | **Historical run:** Rejected after 541 s without semantic edit (oversized regex).<br>**Re-qualification (2026-08-19):** Deep 100K+ trajectory under revised semantic guard; post-run canonical acceptance after test-harness fixes: `typecheck PASS`, `lint PASS`, `build PASS`, `vitest 12/12 PASS`. Comparable E2E wall-time was not captured. |
 
 ### Root Cause Analysis (RCA) on Q5 Long-Task Behavior
 
@@ -137,7 +137,7 @@ With an external semantic guard and the native detector bypassed (`skipLoopDetec
 
 ## 9. Routing strategy
 
-The example router is data-only and intentionally small: [`configs/local-model-router.example.json`](configs/local-model-router.example.json). A production controller should:
+The example router is data-only and intentionally small: [`configs/local-model-router.example.json`](configs/local-model-router.example.json). NInfer is the selected primary single-agent integration; Q5/MTP3 remains the explicitly selected fallback with its existing long-agent qualification, and SGLang remains the serving baseline. The public file is a routing specification, not an installed controller.
 
 1. Classify the task before loading a model; NInfer is the default single-agent route.
 2. Stop only the runtime it owns and verify its port/VRAM were released.
@@ -165,6 +165,7 @@ Full steps and evidence requirements are in [reproducibility.md](docs/reproducib
 - The hardware sample is one RTX 5090 system.
 - The long-agent comparison contains counted trajectories per reported runtime condition; it is not a statistical model-quality benchmark across multiple seeds.
 - Comparable end-to-end wall-time was not captured for the Q5 re-qualification run.
+- The exact private semantic-guard wrapper used in the qualification is not published here; the public repo includes the task-local Qwen Code settings and the guard policy/stop conditions needed to implement an equivalent controller.
 - SGLang and Q5 measurements do not populate every identical context depth.
 - Driver, kernels, model revisions, runtime commits, and agent versions can materially change results.
 - No vision path was tested in these recipes.
@@ -186,3 +187,9 @@ This project does not own, modify, sublicense, or redistribute the linked model 
 - [`QwenLM/qwen-code`](https://github.com/QwenLM/qwen-code) — Apache-2.0
 
 Always review the license and model card at the exact revision you download. The repository license does not replace upstream model or runtime licenses.
+
+The exact revisions and license sources checked for this release are recorded in [upstream-licenses.md](docs/upstream-licenses.md).
+
+## 13. License / acknowledgements
+
+The original recipe, documentation, small validation scripts, and diagrams in this repository are MIT licensed. Model artifacts and upstream runtimes retain their respective licenses. Thanks to the Qwen, RadixArk, bartowski, llama.cpp, SGLang, and Qwen Code maintainers and contributors.
