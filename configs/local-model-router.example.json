@@ -1,17 +1,17 @@
 {
   "schema_version": 2,
-  "default_route": "single-agent-ninfer",
+  "default_route": "single-agent-fallback",
   "purpose_routes": {
-    "quick-code": "single-agent-ninfer",
-    "bounded-code": "single-agent-ninfer",
-    "tool-use": "single-agent-ninfer",
-    "complex-code": "single-agent-ninfer",
-    "long-context": "single-agent-ninfer",
+    "quick-code": "single-agent-fallback",
+    "bounded-code": "single-agent-fallback",
+    "tool-use": "single-agent-fallback",
+    "complex-code": "single-agent-fallback",
+    "long-context": "single-agent-fallback",
     "analysis": "serving",
-    "autonomous": "single-agent-ninfer",
-    "long-running": "single-agent-ninfer",
-    "planning": "single-agent-ninfer",
-    "integration": "single-agent-ninfer",
+    "autonomous": "single-agent-fallback",
+    "long-running": "single-agent-fallback",
+    "planning": "single-agent-fallback",
+    "integration": "single-agent-fallback",
     "high-concurrency": "serving",
     "multi-tenant": "serving",
     "batch-serving": "serving"
@@ -56,6 +56,7 @@
   "evidence_boundary": {
     "q5_long_agent_status": "candidate",
     "comparable_e2e_wall_time_captured": false,
-    "multi_seed_speed_ranking_complete": false
+    "multi_seed_speed_ranking_complete": false,
+    "ninfer_status": "qualification candidate; Codex round-trip failed 2026-09-09"
   }
 }

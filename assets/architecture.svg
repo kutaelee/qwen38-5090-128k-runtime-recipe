@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="960" height="455" viewBox="0 0 960 455" role="img" aria-labelledby="title desc">
   <title id="title">Workload-aware single-residency runtime routing</title>
-  <desc id="desc">NInfer is the primary single-agent runtime, llama.cpp is an explicit fallback, and SGLang is the serving runtime. Only one runtime is resident.</desc>
+  <desc id="desc">llama.cpp Q5 is the default single-agent runtime, and NInfer is a qualification candidate, and SGLang is the serving runtime. Only one runtime is resident.</desc>
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
       <path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/>
@@ -21,11 +21,11 @@
   <path class="line" d="M480 214 V280"/>
   <path class="line" d="M560 214 C610 252 740 250 790 280"/>
   <rect class="box primary" x="20" y="280" width="300" height="110"/>
-  <text class="t" x="170" y="311" text-anchor="middle">Primary single-agent</text>
+  <text class="t" x="170" y="311" text-anchor="middle">NInfer qualification candidate</text>
   <text class="s" x="170" y="337" text-anchor="middle">NInfer · NVFP4 · FP8 KV · MTP3</text>
   <text class="s" x="170" y="361" text-anchor="middle">240K runtime · 120K agent ceiling</text>
   <rect class="box fallback" x="330" y="280" width="300" height="110"/>
-  <text class="t" x="480" y="311" text-anchor="middle">Explicit fallback</text>
+  <text class="t" x="480" y="311" text-anchor="middle">Default Q5</text>
   <text class="s" x="480" y="337" text-anchor="middle">llama.cpp · Q5_K_M · Q8 K/V · MTP3</text>
   <text class="s" x="480" y="361" text-anchor="middle">existing measured rollback path</text>
   <rect class="box serving" x="640" y="280" width="300" height="110"/>

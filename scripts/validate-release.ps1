@@ -38,10 +38,13 @@ foreach ($ps1 in Get-ChildItem -LiteralPath $root -Recurse -File -Filter '*.ps1'
     if (@($errors).Count) { Add-Failure "invalid-powershell:$($ps1.FullName.Substring($root.Length + 1))" }
 }
 
-$textExtensions = @('.md', '.json', '.ps1', '.sh', '.csv', '.svg', '.html', '.gitignore')
+$textExtensions = @('.md', '.json', '.ps1', '.py', '.sh', '.csv', '.svg', '.html', '.gitignore')
+$publicPaths = @(& git -C $root ls-files --cached --others --exclude-standard)
+if ($LASTEXITCODE -ne 0) { throw 'Unable to enumerate publication files.' }
 $files = @(Get-ChildItem -LiteralPath $root -Recurse -File -Force | Where-Object {
     $_.FullName -notmatch '[\\/]\.git[\\/]' -and
     $_.FullName -ne $PSCommandPath -and
+    $publicPaths -contains $_.FullName.Substring($root.Length + 1).Replace('\', '/') -and
     ($textExtensions -contains $_.Extension -or $_.Name -in @('LICENSE', 'AGENTS.md', '.gitignore'))
 })
 $patterns = [ordered]@{

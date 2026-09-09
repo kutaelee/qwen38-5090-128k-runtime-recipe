@@ -1,3 +1,5 @@
+> Current decision (2026-09-09): Q5/MTP3 remains the default; NInfer is an explicit qualification candidate. See [measured results](../benchmarks/ninfer-qualification-2026-09-09.md). The legacy route key `single-agent-fallback` now selects the default Q5 profile.
+
 # Architecture
 
 ## Components
@@ -7,8 +9,8 @@ task packet
     |
     v
 purpose classifier
-    |-- single-agent primary                --> NInfer NVFP4 MTP3 :8083
-    |-- explicit single-agent fallback      --> llama.cpp Q5_K_M MTP3 :8082
+    |-- explicit qualification candidate    --> NInfer NVFP4 MTP3 :8083
+    |-- default single-agent                --> llama.cpp Q5_K_M MTP3 :8082
     `-- multi-tenant / high-concurrency     --> SGLang NVFP4 :30000
                                       
 selected loopback endpoint --> Qwen Code --> workspace tools

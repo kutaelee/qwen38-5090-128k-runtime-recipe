@@ -8,12 +8,14 @@
 
 ![Workload-aware runtime routing](assets/architecture.svg)
 
+Latest: [NInfer measured comparison and Codex failure](benchmarks/ninfer-qualification-2026-09-09.md). Q5 remains the default.
+
 ## 1. Overview
 
 This recipe runs Qwen3.8-27B on one 32 GB RTX 5090 without keeping multiple generation runtimes resident. A task router stops and cleans up the previous runtime, then starts exactly one loopback-only backend:
 
-- **Primary single-agent:** `neroued/Qwen3.8-27B-nvfp4-NInfer` on NInfer with FP8 KV and MTP3. The runtime has a 240,000-token logical ceiling while Qwen Code retains its existing 120,000-token operating ceiling and 0.7 auto-compaction policy.
-- **Explicit rollback fallback:** `bartowski/Qwen3.8-27B-GGUF` (`Qwen3.8-27B-Q5_K_M.gguf`) on llama.cpp with Q8_0 K/V and MTP3.
+- **NInfer qualification candidate:** `neroued/Qwen3.8-27B-nvfp4-NInfer` on NInfer with FP8 KV and MTP3. The runtime has a 240,000-token logical ceiling while Qwen Code retains its existing 120,000-token operating ceiling and 0.7 auto-compaction policy.
+- **Default single-agent:** `bartowski/Qwen3.8-27B-GGUF` (`Qwen3.8-27B-Q5_K_M.gguf`) on llama.cpp with Q8_0 K/V and MTP3.
 - **Serving / concurrency:** `RadixArk/Qwen3.8-27B-NVFP4` on SGLang with FP8 E4M3 KV, FlashInfer, and MTP off.
 
 The central finding is not a top-line TPS record:
@@ -28,8 +30,8 @@ The roles separate single-agent execution, rollback, and concurrent serving with
 
 | Workload | Selected runtime | Reason |
 | --- | --- | --- |
-| single-agent quick, bounded, complex, long, autonomous, planning, integration | NInfer NVFP4 + FP8 KV + MTP3 | Primary WSL2 single-agent route selected from upstream RTX 5090 evidence; local comparison was not rerun for this integration |
-| explicit single-agent rollback | Q5_K_M + llama.cpp + MTP3 | Existing locally measured runtime and agent qualification remain intact |
+| explicit NInfer qualification | NInfer NVFP4 + FP8 KV + MTP3 | Qualification candidate; see September 9 results |
+| default single-agent work | Q5_K_M + llama.cpp + MTP3 | Existing locally measured runtime and agent qualification remain intact |
 | `high-concurrency`, multi-tenant serving, analysis | NVFP4 + SGLang | Stable 80K+ context serving baseline and FlashInfer chunked prefill |
 
 This is a **workload-aware routing result**, not a claim that either artifact is universally better.
@@ -45,7 +47,7 @@ This is a **workload-aware routing result**, not a claim that either artifact is
 
 No model weights are stored in this repository. See [Upstream models/projects](#12-upstream-modelsprojects).
 
-## 4. Primary runtime — NInfer NVFP4 + MTP3
+## 4. Candidate runtime — NInfer NVFP4 + MTP3
 
 Integration profile:
 
@@ -62,9 +64,9 @@ See [`configs/ninfer-nvfp4-mtp3.example.sh`](configs/ninfer-nvfp4-mtp3.example.s
 
 On this workstation pattern, [`scripts/Start-NInferQwen38.ps1`](scripts/Start-NInferQwen38.ps1) submits the WSL server through `gpuq`; it does not bypass GPU ownership or silently stop another runtime. GPUQ operators can allowlist [`scripts/Stop-NInferQwen38.ps1`](scripts/Stop-NInferQwen38.ps1) as the exact cleanup command for this workload so WSL cancellation does not orphan the Linux/CUDA worker.
 
-## 5. Fallback runtime — llama.cpp Q5 + MTP3
+## 5. Default runtime — llama.cpp Q5 + MTP3
 
-The existing measured single-agent runtime remains available only by explicit route selection. Its artifact identity, launch options, and evidence are unchanged.
+The existing measured single-agent runtime remains the default. Its artifact identity, launch options, and evidence are unchanged.
 
 Tested configuration:
 
@@ -137,9 +139,9 @@ With an external semantic guard and the native detector bypassed (`skipLoopDetec
 
 ## 9. Routing strategy
 
-The example router is data-only and intentionally small: [`configs/local-model-router.example.json`](configs/local-model-router.example.json). NInfer is the selected primary single-agent integration; Q5/MTP3 remains the explicitly selected fallback with its existing long-agent qualification, and SGLang remains the serving baseline. The public file is a routing specification, not an installed controller.
+The example router is data-only and intentionally small: [`configs/local-model-router.example.json`](configs/local-model-router.example.json). Q5/MTP3 remains the default with its existing long-agent qualification; NInfer is a qualification candidate, and SGLang remains the serving baseline. The public file is a routing specification, not an installed controller.
 
-1. Classify the task before loading a model; NInfer is the default single-agent route.
+1. Classify the task before loading a model; Q5 is the default single-agent route; NInfer is explicitly selectable for qualification.
 2. Stop only the runtime it owns and verify its port/VRAM were released.
 3. Start the selected runtime through the machine's GPU scheduler.
 4. Verify `/v1/models` returns the expected model ID; fail closed on a port or model mismatch.
@@ -169,7 +171,7 @@ Full steps and evidence requirements are in [reproducibility.md](docs/reproducib
 - SGLang and Q5 measurements do not populate every identical context depth.
 - Driver, kernels, model revisions, runtime commits, and agent versions can materially change results.
 - No vision path was tested in these recipes.
-- **NInfer is the primary runtime selected from upstream RTX 5090 evidence; local comparative benchmark not rerun for this integration.** The [smoke report](benchmarks/ninfer-integration-2026-09-08.md) records startup allocation and request timings only; it does not establish sustained throughput, tool correctness or agent completion.
+- **NInfer remains a qualification candidate; the September 9 test found higher decode speed but failed the Codex tool round trip.** The [smoke report](benchmarks/ninfer-integration-2026-09-08.md) records startup allocation and request timings only; it does not establish sustained throughput, tool correctness or agent completion.
 
 More detail: [limitations.md](docs/limitations.md).
 

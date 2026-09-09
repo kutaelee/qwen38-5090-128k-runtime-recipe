@@ -4,6 +4,7 @@
 !.env.example
 *.local.json
 *.local.ps1
+*.local.py
 secrets/
 
 # Runtime output

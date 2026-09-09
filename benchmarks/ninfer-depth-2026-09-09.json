@@ -1,0 +1,134 @@
+[
+  {
+    "kind": "decode-short",
+    "prompt_sha256": "47b1d2217346903b30a5288ddba35f177f7473de4497725e69a6b1178e79e18b",
+    "input_tokens": 54,
+    "output_tokens": 300,
+    "server_decode_tps": 222.0,
+    "draft_accepted": 214,
+    "draft_proposed": 255,
+    "client_ttft_seconds": 0.06440819997806102,
+    "client_wall_seconds": 1.4150893000187352
+  },
+  {
+    "kind": "decode-short",
+    "prompt_sha256": "47b1d2217346903b30a5288ddba35f177f7473de4497725e69a6b1178e79e18b",
+    "input_tokens": 54,
+    "output_tokens": 300,
+    "server_decode_tps": 222.0,
+    "draft_accepted": 214,
+    "draft_proposed": 255,
+    "client_ttft_seconds": 0.04224340000655502,
+    "client_wall_seconds": 1.3935182000277564
+  },
+  {
+    "kind": "decode-short",
+    "prompt_sha256": "47b1d2217346903b30a5288ddba35f177f7473de4497725e69a6b1178e79e18b",
+    "input_tokens": 54,
+    "output_tokens": 300,
+    "server_decode_tps": 222.5,
+    "draft_accepted": 214,
+    "draft_proposed": 255,
+    "client_ttft_seconds": 0.05456339998636395,
+    "client_wall_seconds": 1.40166919992771
+  },
+  {
+    "kind": "decode-38K",
+    "prompt_sha256": "35b35882983ebe72330093da4781a5660409340fed0c74120c8a80c6c2647a41",
+    "input_tokens": 38717,
+    "output_tokens": 300,
+    "server_decode_tps": 190.6,
+    "draft_accepted": 207,
+    "draft_proposed": 274,
+    "client_ttft_seconds": 0.07217479997780174,
+    "client_wall_seconds": 1.644966799998656
+  },
+  {
+    "kind": "decode-38K",
+    "prompt_sha256": "35b35882983ebe72330093da4781a5660409340fed0c74120c8a80c6c2647a41",
+    "input_tokens": 38717,
+    "output_tokens": 300,
+    "server_decode_tps": 190.6,
+    "draft_accepted": 207,
+    "draft_proposed": 274,
+    "client_ttft_seconds": 0.055153800058178604,
+    "client_wall_seconds": 1.627762700081803
+  },
+  {
+    "kind": "decode-38K",
+    "prompt_sha256": "35b35882983ebe72330093da4781a5660409340fed0c74120c8a80c6c2647a41",
+    "input_tokens": 38717,
+    "output_tokens": 300,
+    "server_decode_tps": 190.6,
+    "draft_accepted": 207,
+    "draft_proposed": 274,
+    "client_ttft_seconds": 0.07673499989323318,
+    "client_wall_seconds": 1.6496126999845728
+  },
+  {
+    "kind": "decode-84K",
+    "prompt_sha256": "6169cd4124b72917a9d2242243e065e878fbb8373530e0cddaa328c1af4b6d16",
+    "input_tokens": 83917,
+    "output_tokens": 300,
+    "server_decode_tps": 176.9,
+    "draft_accepted": 206,
+    "draft_proposed": 279,
+    "client_ttft_seconds": 0.0811296000611037,
+    "client_wall_seconds": 1.775303200003691
+  },
+  {
+    "kind": "decode-84K",
+    "prompt_sha256": "6169cd4124b72917a9d2242243e065e878fbb8373530e0cddaa328c1af4b6d16",
+    "input_tokens": 83917,
+    "output_tokens": 300,
+    "server_decode_tps": 176.9,
+    "draft_accepted": 206,
+    "draft_proposed": 279,
+    "client_ttft_seconds": 0.0914804000640288,
+    "client_wall_seconds": 1.7856469000689685
+  },
+  {
+    "kind": "decode-84K",
+    "prompt_sha256": "6169cd4124b72917a9d2242243e065e878fbb8373530e0cddaa328c1af4b6d16",
+    "input_tokens": 83917,
+    "output_tokens": 300,
+    "server_decode_tps": 176.8,
+    "draft_accepted": 206,
+    "draft_proposed": 279,
+    "client_ttft_seconds": 0.08707419992424548,
+    "client_wall_seconds": 1.7827706999378279
+  },
+  {
+    "kind": "decode-114K",
+    "prompt_sha256": "66cb631713917e70df0fc600936fb198e0ce09c923f08fbefe7c6f6269b1468f",
+    "input_tokens": 113956,
+    "output_tokens": 300,
+    "server_decode_tps": 169.8,
+    "draft_accepted": 207,
+    "draft_proposed": 273,
+    "client_ttft_seconds": 0.10142469999846071,
+    "client_wall_seconds": 1.8692675000056624
+  },
+  {
+    "kind": "decode-114K",
+    "prompt_sha256": "66cb631713917e70df0fc600936fb198e0ce09c923f08fbefe7c6f6269b1468f",
+    "input_tokens": 113956,
+    "output_tokens": 300,
+    "server_decode_tps": 169.7,
+    "draft_accepted": 207,
+    "draft_proposed": 273,
+    "client_ttft_seconds": 0.0949497000547126,
+    "client_wall_seconds": 1.8644065000116825
+  },
+  {
+    "kind": "decode-114K",
+    "prompt_sha256": "66cb631713917e70df0fc600936fb198e0ce09c923f08fbefe7c6f6269b1468f",
+    "input_tokens": 113956,
+    "output_tokens": 300,
+    "server_decode_tps": 169.9,
+    "draft_accepted": 207,
+    "draft_proposed": 273,
+    "client_ttft_seconds": 0.09731360001023859,
+    "client_wall_seconds": 1.8629501999821514
+  }
+]

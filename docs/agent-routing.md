@@ -1,14 +1,16 @@
+> Current decision (2026-09-09): Q5/MTP3 remains the default; NInfer is an explicit qualification candidate. See [measured results](../benchmarks/ninfer-qualification-2026-09-09.md). The legacy route key `single-agent-fallback` now selects the default Q5 profile.
+
 # Agent routing
 
 ## Default policy
 
 | Purpose | Route |
 | --- | --- |
-| quick code, bounded tool use, complex or autonomous single-agent work | NInfer NVFP4 + FP8 KV + MTP3 |
-| explicit rollback after a reviewed NInfer startup/integration failure | Q5_K_M + llama.cpp + MTP3 |
+| quick code, bounded tool use, complex or autonomous single-agent work | Q5_K_M + llama.cpp + MTP3 |
+| explicitly selected qualification | NInfer NVFP4 + FP8 KV + MTP3 |
 | high-concurrency multi-tenant serving, analysis baseline | NVFP4 + SGLang |
 
-Task purpose is determined before model load. NInfer is the default single-agent route; llama.cpp is an explicit fallback rather than a silent recovery path. When running deep autonomous trajectories, the existing harness still uses `skipLoopDetection: true` and the same external semantic guard.
+Task purpose is determined before model load. Q5 is the default single-agent route; NInfer is explicitly selectable for qualification. When running deep autonomous trajectories, the existing harness still uses `skipLoopDetection: true` and the same external semantic guard.
 
 ## Qwen Code wire profile
 
