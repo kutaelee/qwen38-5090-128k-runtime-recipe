@@ -1,5 +1,7 @@
 # Runtime comparison
 
+[English](runtime-comparison.md) · [한국어](runtime-comparison.ko.md)
+
 ## Synthetic Decode Throughput
 
 | Runtime | Short | 32K | 80K | 114K |

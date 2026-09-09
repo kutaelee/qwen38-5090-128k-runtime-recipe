@@ -1,5 +1,7 @@
 # NInfer depth and Codex qualification — 2026-09-09
 
+[English](ninfer-qualification-2026-09-09.md) · [한국어](ninfer-qualification-2026-09-09.ko.md)
+
 **Decision: keep Q5/MTP3 as the default; NInfer remains a qualification candidate.** NInfer passed the tested decode and recall probes. The initial Codex tool round trip failed on a Responses compatibility error; a scoped adapter repair subsequently passed the same bounded 94K task. This is not a full autonomous qualification. Q5 was not rerun.
 
 ## Measured decode versus historical Q5

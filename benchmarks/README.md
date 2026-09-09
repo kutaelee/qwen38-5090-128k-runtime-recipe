@@ -1,5 +1,7 @@
 # Benchmark data
 
+[English](README.md) · [한국어](README.ko.md)
+
 Latest: [NInfer qualification and historical Q5 comparison](ninfer-qualification-2026-09-09.md), with [per-run measurements](ninfer-depth-2026-09-09.json).
 
 This directory contains public aggregate results only. Raw prompts, source repositories, private logs, scheduler identifiers, sessions, and machine-specific paths are intentionally excluded.

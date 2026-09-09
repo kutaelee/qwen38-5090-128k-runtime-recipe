@@ -1,5 +1,7 @@
 # Qwen3.8-27B on RTX 5090 — 128K Multi-Runtime Agent Recipe
 
+[English](README.md) · [한국어](README.ko.md)
+
 > **Q5_K_M + MTP3 sustained ~109.5 tok/s during a 100K+ autonomous coding trajectory on a single RTX 5090, with 89.6% speculative acceptance.** A previous long-agent rejection was not reproduced under the revised semantic guard, while final production speed ranking remains gated on comparable end-to-end wall-time measurement across multiple seeds.
 
 **This repository does not contain modified model weights. It provides reproducible RTX 5090 inference configurations, benchmarks, and an agent-routing recipe for Qwen3.8-27B.**
