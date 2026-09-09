@@ -171,7 +171,7 @@ Full steps and evidence requirements are in [reproducibility.md](docs/reproducib
 - SGLang and Q5 measurements do not populate every identical context depth.
 - Driver, kernels, model revisions, runtime commits, and agent versions can materially change results.
 - No vision path was tested in these recipes.
-- **NInfer remains a qualification candidate; the September 9 test found higher decode speed but failed the Codex tool round trip.** The [smoke report](benchmarks/ninfer-integration-2026-09-08.md) records startup allocation and request timings only; it does not establish sustained throughput, tool correctness or agent completion.
+- **NInfer remains a qualification candidate.** The [September 9 report](benchmarks/ninfer-qualification-2026-09-09.md) records higher decode speed, an initial Codex metadata compatibility failure, and a scoped adapter repair that passed the same bounded 94K read/edit/test task in 33.409 s. Full autonomous qualification remains outstanding; the original failure is retained.
 
 More detail: [limitations.md](docs/limitations.md).
 

@@ -1,6 +1,6 @@
 # NInfer depth and Codex qualification — 2026-09-09
 
-**Decision: keep Q5/MTP3 as the default; NInfer remains a qualification candidate.** NInfer passed the tested decode and recall probes, but the real Codex tool round trip failed on a Responses compatibility error before any source edit. Q5 was not rerun.
+**Decision: keep Q5/MTP3 as the default; NInfer remains a qualification candidate.** NInfer passed the tested decode and recall probes. The initial Codex tool round trip failed on a Responses compatibility error; a scoped adapter repair subsequently passed the same bounded 94K task. This is not a full autonomous qualification. Q5 was not rerun.
 
 ## Measured decode versus historical Q5
 
@@ -42,7 +42,7 @@ GPUQ observed whole-device peak usage of 29,436 MiB across the run. This include
 | Single-turn tool name/arguments | 40/40 `read_file` requests |
 | Recall at 38K / 84K / 114K | 5/5 facts at each depth, no answers in schema |
 | Restricted Python coding fixture | 2/3 tasks, each repeated 3 times after warm-up |
-| Actual Codex read/edit/test round trip | FAIL before edit |
+| Actual Codex read/edit/test round trip | Initial FAIL; post-fix bounded retest PASS (3/3 tests) |
 
 The Python `unique` function used `list.append`, violating the deliberately restricted no-attributes fixture contract; it was not garbled code. The other two functions passed their test vectors. Explicit JSON-only results do not erase the original parse failures or provide constrained-generation support. See the separate [JSON diagnostic](../scripts/probe-json-explicit.py).
 
@@ -61,7 +61,30 @@ unsupported input member: internal_chat_message_metadata_passthrough
 
 The run exited 1 after 31.253 s. Semantic edits: 0. Independent test rerun still failed (`10 !== 6`). The one successful generation logged 188.2 tok/s and 35/39 accepted draft tokens, but its output was only 46 tokens: **no representative agent-average TPS is claimed**. In particular, this does not beat or replace the historical 109.51 tok/s CourseBench result.
 
-This was a bounded high-context agent probe, not a full CourseBench replay. The current Codex adapter requires further compatibility work before a long autonomous qualification is meaningful. No runtime or adapter repair was folded into this measured attempt.
+This was a bounded high-context agent probe, not a full CourseBench replay. No runtime or adapter repair was folded into this initial measured attempt.
+
+## Post-fix Codex retest
+
+The NInfer-only adapter now strips `internal_chat_message_metadata_passthrough` from Responses input items. It preserves tool arguments, outputs, call IDs and message content. Neither model/runtime settings nor other provider routes were changed. A reusable [minimal adapter and self-test](../scripts/ninfer-codex-input-compat.py) is included; it is not a complete router.
+
+One post-fix retest used the same prompt, original fixture and Codex CLI. Codex read source/tests, edited the sum function, ran its tests, and returned a final response. Independent `node sum.test.cjs` also passed all three assertions. The retained read output matches the final test file; only the source function changed. The metadata HTTP 400 did not recur.
+
+| Metric | Post-fix observation |
+| --- | ---: |
+| Codex exit / wall | 0 / 33.409 s |
+| Successful tool executions | 2 (read; edit + test) |
+| API generations | 3 |
+| Actual prompt tokens per request | 94,338 / 94,544 / 94,682 |
+| Total input / cached input / output tokens | 283,564 / 188,770 / 247 |
+| Reasoning output tokens | 0 |
+| Server decode tok/s per request | 183.2 / 174.5 / 140.5 |
+| Client-facing server TTFT per request | 19.2 s / 197 ms / 313 ms |
+| Accepted / proposed draft tokens | 169 / 249 (67.87%) |
+| Independent fixture tests | 3/3 PASS |
+
+These are only 48/79/120-token generations, not a representative agent TPS benchmark or evidence of full CourseBench success. This is an explicitly labeled repair retest, not a replacement for the initial counted failure. The harness's console print hit a Windows encoding error **after** saving Codex's successful exit and UTF-8 logs; the saved result and independent tests establish the outcome. Nonfatal WebSocket-to-HTTP fallback and local hook/MCP shutdown warnings also remained; they were not runtime correctness failures and were not repaired in this scope.
+
+Outcome: **Codex bounded tool round-trip compatibility PASS after adapter repair; long autonomous promotion remains unqualified.**
 
 ## Publication scope
 

@@ -29,4 +29,4 @@ Neither outcome should be generalized into a universal model-quality ranking. Ag
 - The SGLang checkpoint's upstream repository has moved beyond the tested revision; the recipe pins the tested revision.
 - MTP was not enabled for the 128K SGLang role.
 - Q5/MTP3 free-VRAM headroom is a measured peak value (28.63 GB peak used, ~3.98 GiB free), not a guarantee for every driver or display workload.
-- NInfer's [local smoke report](../benchmarks/ninfer-integration-2026-09-08.md) covers startup and Codex adapter connectivity. Sustained throughput, tool correctness, long-context workloads and agent completion were not evaluated. Automatic cancellation of a live instance after the cleanup change remains unverified.
+- NInfer's [September 9 qualification](../benchmarks/ninfer-qualification-2026-09-09.md) adds decode/recall measurements through 114K and verified live cancellation. The initial Codex metadata failure was repaired and the same bounded 94K read/edit/test task passed; this does not establish full autonomous project completion. Constrained JSON remains unsupported.

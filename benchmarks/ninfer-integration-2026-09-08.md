@@ -77,4 +77,4 @@ A workload-specific [cleanup script](../scripts/Stop-NInferQwen38.ps1) and local
 
 Repository release validation, JSON parsing, PowerShell parsing, shell syntax and whitespace checks passed. Existing benchmark values and Qwen Code settings were retained. No weights or private raw logs are included in this publication.
 
-This integration is usable through the tested Codex adapter for a basic response. Full tool use, sustained TPS, 120K/240K workload behavior, autonomous coding and automatic live cancellation require separate qualification.
+At the time of this smoke check, only a basic Codex response was qualified. The [September 9 follow-up](ninfer-qualification-2026-09-09.md) adds measured decode/recall, live cancellation and a bounded 94K Codex tool round trip after a scoped metadata adapter fix. Full autonomous coding and 240K workload behavior remain unqualified.
