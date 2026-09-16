@@ -225,3 +225,12 @@ This project does not own, modify, sublicense, or redistribute the linked model 
 - [`Neroued/ninfer`](https://github.com/Neroued/ninfer) — NInfer runtime, Apache-2.0
 - [`ggml-org/llama.cpp`](https://github.com/ggml-org/llama.cpp) — MIT
 - [`sgl-project/sglang`](https://github.com/sgl-project/sglang) — Apache-2.0
+- [`QwenLM/qwen-code`](https://github.com/QwenLM/qwen-code) — Apache-2.0
+
+Always review the license and model card at the exact revision you download. The repository license does not replace upstream model or runtime licenses.
+
+The exact revisions and license sources checked for this release are recorded in [upstream-licenses.md](docs/upstream-licenses.md).
+
+## 13. License / acknowledgements
+
+The original recipe, documentation, small validation scripts, and diagrams in this repository are MIT licensed. Model artifacts and upstream runtimes retain their respective licenses. Thanks to the Qwen, Neroued/NInfer, RadixArk, bartowski, llama.cpp, SGLang, and Qwen Code maintainers and contributors.
