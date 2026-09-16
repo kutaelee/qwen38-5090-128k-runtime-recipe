@@ -16,7 +16,7 @@ The NInfer row is from the 2026-09-09 local depth probes. The actual prompt size
 
 Across the deep-context points, NInfer measured approximately **1.58× / 1.79× / 1.79×** the historical Q5 decode rates. The 12 NInfer depth generations produced 3,600 output tokens and accepted 2,502 / 3,243 proposed draft tokens (**77.15%**).
 
-## Observed autonomous agent telemetry — CourseBench long task
+## Completed autonomous-agent evidence — historical runs
 
 | Metric | SGLang NVFP4 Baseline | Q5_K_M + llama.cpp + MTP3 (2026-08-19) |
 | --- | --- | --- |
@@ -27,7 +27,30 @@ Across the deep-context points, NInfer measured approximately **1.58× / 1.79× 
 | Prefix Cache Reuse | Chunked prefill | **16,675,200 tokens cached** (96.8% hit rate) |
 | Peak VRAM Consumption | 29.8 GB | **28.63 GB** (3.98 GB free headroom) |
 
-NInfer is intentionally not added to this table. A comparable long-autonomous NInfer run has not been completed, so its depth-probe decode rates must not be presented as autonomous-agent throughput.
+Long-running NInfer agent tasks have completed successfully in prior local use. Those earlier successful runs do not have a comparable retained telemetry bundle in this repository, so they are not inserted into this historical metric table with invented values.
+
+## NInfer live long-agent telemetry — 2026-09-16
+
+The current instrumented run was still active when this snapshot was recorded:
+
+| Metric | Live snapshot |
+| --- | ---: |
+| Completed requests | **101** |
+| Generated output tokens | **96,241** |
+| Aggregate decode throughput | **132.23 tok/s** |
+| Mean request decode throughput | **140.59 tok/s** |
+| Median request decode throughput | **136.2 tok/s** |
+| Aggregate MTP acceptance | **51.71%** |
+| Prompt depth observed in displayed segment | **at least 88,250 tokens** |
+| Current task acceptance | pending; workload still running at snapshot |
+
+`Aggregate decode throughput` is output-token weighted: total generated output tokens divided by the sum of each completed request's estimated decode time (`output_tokens / request_decode_tps`). It is preferred over the unweighted request mean for this workload.
+
+The same displayed log segment included multi-thousand-token generations at 79K–88K prompt depth, including 5,556 output tokens at 130.6 tok/s and 3,454 output tokens at 130.5 tok/s. The aggregate therefore is not produced only by tiny synthetic completions.
+
+The current **132.23 tok/s** aggregate is numerically about **20.7% above** the historical Q5 **109.51 tok/s** long-agent observation, but this is not a matched contemporaneous A/B: workload, harness, request mix and MTP acceptance differ. The repository reports both values without attributing the difference solely to the runtime.
+
+Full snapshot and completion-update requirements: [ninfer-long-agent-live-2026-09-16.md](ninfer-long-agent-live-2026-09-16.md).
 
 ## NInfer bounded Codex path at ~94K — post-fix retest
 
@@ -69,7 +92,7 @@ The generations contained only 48 / 79 / 120 output tokens. These values establi
 
 | Gate | Observed result |
 | --- | --- |
-| Runtime context / KV allocation | 240,000 tokens configured; no 160K–240K workload executed |
+| Runtime context / KV allocation | 240,000 tokens configured; no 160K–240K workload executed in the retained September 9 depth suite |
 | Basic instruction | 3/3 |
 | Constrained JSON schema | Unsupported: HTTP 400 `response_format_not_supported` |
 | Original plain JSON prompt | 0/20 strict parse; responses included Markdown fences |
@@ -78,6 +101,7 @@ The generations contained only 48 / 79 / 120 output tokens. These values establi
 | Recall at ~38K / ~84K / ~114K | 5/5 facts at each depth |
 | Restricted Python coding fixture | 2/3 tasks, each repeated 3 times after warm-up |
 | Actual Codex read/edit/test round trip | Initial FAIL; post-fix bounded retest PASS, independent tests 3/3 |
+| Long-running practical use | prior local runs completed successfully; current instrumented run retained separately |
 | CUDA/OOM in retained depth/qualification logs | 0 observed |
 
 The historical Q5 NIAH used an enum schema containing the expected answers, while the NInfer recall probe did not place the answers in the response schema. These checks are not treated as equivalent model-quality measurements.
@@ -86,8 +110,9 @@ The historical Q5 NIAH used an enum schema containing the expected answers, whil
 
 ### NInfer NVFP4 + MTP3
 - **Bounded ~94K Codex qualification:** initial Responses compatibility failure preserved; post-fix retest completed read/edit/test and independent tests 3/3 PASS.
-- **Long autonomous:** not yet qualified.
-- The published 222.0 / 190.6 / 176.9 / 169.8 tok/s depth figures are runtime decode measurements, not autonomous-agent averages.
+- **Long-running practical use:** prior local agent tasks completed successfully.
+- **Instrumented live run (2026-09-16):** 101 completed requests, 96,241 generated output tokens, 132.23 tok/s output-weighted aggregate decode, 51.71% MTP acceptance at the retained snapshot; current run final acceptance still pending at snapshot time.
+- The published 222.0 / 190.6 / 176.9 / 169.8 tok/s depth figures remain runtime decode measurements and are reported separately from live agent aggregate throughput.
 
 ### SGLang NVFP4
 - One counted medium web-project run
@@ -110,10 +135,10 @@ The historical Q5 NIAH used an enum schema containing the expected answers, whil
 
 ## Interpretation
 
-The latest published local measurements change the raw-throughput picture: **NInfer is the fastest measured decode route in the available depth probes**, including 169.8 tok/s at 113,956 prompt tokens. That does not make it the default agent runtime yet.
+The latest local measurements change the raw-throughput picture: **NInfer is the fastest measured decode route in the available depth probes**, including 169.8 tok/s at 113,956 prompt tokens. It has also completed long-running agent work in prior local use, and the new instrumented practical-workload snapshot shows **132.23 tok/s aggregate decode across 96,241 generated output tokens** while still running.
 
-Q5_K_M + llama.cpp + MTP3 remains the default because it has the strongest retained long-autonomous qualification: a 100K+ coding trajectory with 109.51 tok/s average decode, 89.61% speculative acceptance, and post-run typecheck/lint/build/vitest acceptance. NInfer has passed a bounded ~94K Codex tool path after a scoped compatibility repair, but a comparable long-autonomous qualification is still missing.
+Q5_K_M + llama.cpp + MTP3 remains the conservative default because its completed 100K+ autonomous qualification and post-run acceptance bundle are fully retained in the repository. This is an evidence-retention decision, not a claim that NInfer cannot complete long-running work.
 
-Raw decode TPS, bounded task wall time, and long-agent task throughput are therefore reported separately rather than collapsed into one ranking.
+Raw depth decode TPS, bounded task wall time, live agent aggregate decode, and final task acceptance are therefore reported separately rather than collapsed into one ranking.
 
-See [NInfer qualification](ninfer-qualification-2026-09-09.md) for raw measurements, prompt hashes, failure preservation, and the adapter-repair retest.
+See [NInfer qualification](ninfer-qualification-2026-09-09.md) for depth measurements and bounded Codex failure/repair evidence, and [NInfer live long-agent telemetry](ninfer-long-agent-live-2026-09-16.md) for the current practical-workload snapshot.
