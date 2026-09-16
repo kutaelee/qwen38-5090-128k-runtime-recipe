@@ -2,15 +2,15 @@
 
 [English](README.md) · [한국어](README.ko.md)
 
-> **Q5_K_M + MTP3 sustained ~109.5 tok/s during a 100K+ autonomous coding trajectory on a single RTX 5090, with 89.6% speculative acceptance.** A previous long-agent rejection was not reproduced under the revised semantic guard, while final production speed ranking remains gated on comparable end-to-end wall-time measurement across multiple seeds.
+> **NInfer NVFP4 + FP8 KV + MTP3 measured 190.6 tok/s at ~38.7K, 176.9 tok/s at ~83.9K, and 169.8 tok/s at ~114K on a single RTX 5090.** After a scoped Responses compatibility repair, a bounded ~94K Codex read/edit/test task completed in 33.409 s and passed 3/3 independent fixture tests. **Q5_K_M + MTP3 remains the default** because it has the stronger long-autonomous qualification: ~109.5 tok/s average decode during a 100K+ coding trajectory with 89.6% speculative acceptance.
 
 **This repository does not contain modified model weights. It provides reproducible RTX 5090 inference configurations, benchmarks, and an agent-routing recipe for Qwen3.8-27B.**
 
-[Hugging Face showcase](https://huggingface.co/spaces/kutaelee/Qwen3.8-27B-RTX5090-128K-Recipe) · [Benchmark results](benchmarks/runtime-comparison.md) · [Latest long-agent qualification](benchmarks/long-agent-qualification-2026-08-19.md) · [Reproduction guide](docs/reproducibility.md) · [Publishing guide](docs/publishing.md)
+[Hugging Face showcase](https://huggingface.co/spaces/kutaelee/Qwen3.8-27B-RTX5090-128K-Recipe) · [Benchmark results](benchmarks/runtime-comparison.md) · [Latest NInfer qualification](benchmarks/ninfer-qualification-2026-09-09.md) · [Latest long-agent qualification](benchmarks/long-agent-qualification-2026-08-19.md) · [Reproduction guide](docs/reproducibility.md) · [Publishing guide](docs/publishing.md)
 
 ![Workload-aware runtime routing](assets/architecture.svg)
 
-Latest: [NInfer measured comparison and Codex failure](benchmarks/ninfer-qualification-2026-09-09.md). Q5 remains the default.
+Latest: [NInfer measured comparison and bounded Codex qualification](benchmarks/ninfer-qualification-2026-09-09.md). Q5 remains the default pending comparable long-autonomous NInfer qualification.
 
 ## 1. Overview
 
@@ -24,7 +24,9 @@ The central finding is not a top-line TPS record:
 
 > **Raw decode TPS is not agent throughput.**
 
-The Q5/MTP3 route decoded roughly 1.5–2× faster in runtime benchmarks and was accurate on bounded coding. In the 2026-08-19 re-qualification, it executed a 100K+ autonomous implementation trajectory at ~109.5 tok/s average decode; post-run canonical acceptance reached `typecheck PASS`, `lint PASS`, `build PASS`, and `vitest 12/12 PASS` after correcting test-harness cleanup issues.
+In the published local depth probes, NInfer produced the highest measured raw decode rates: **190.6 tok/s at 38,717 prompt tokens, 176.9 at 83,917, and 169.8 at 113,956**. These are historical comparisons against Q5 measurements rather than a contemporaneous matched A/B, and the short prompts are not equivalent.
+
+Q5/MTP3 remains the default because its long-agent evidence is stronger. In the 2026-08-19 re-qualification, it executed a 100K+ autonomous implementation trajectory at ~109.5 tok/s average decode; post-run canonical acceptance reached `typecheck PASS`, `lint PASS`, `build PASS`, and `vitest 12/12 PASS` after correcting test-harness cleanup issues.
 
 ## 2. Why three runtime roles?
 
@@ -32,8 +34,8 @@ The roles separate single-agent execution, rollback, and concurrent serving with
 
 | Workload | Selected runtime | Reason |
 | --- | --- | --- |
-| explicit NInfer qualification | NInfer NVFP4 + FP8 KV + MTP3 | Qualification candidate; see September 9 results |
-| default single-agent work | Q5_K_M + llama.cpp + MTP3 | Existing locally measured runtime and agent qualification remain intact |
+| explicit NInfer qualification | NInfer NVFP4 + FP8 KV + MTP3 | Highest measured raw decode in the published local depth probes; bounded 94K Codex path passed after adapter repair |
+| default single-agent work | Q5_K_M + llama.cpp + MTP3 | Existing locally measured long-autonomous agent qualification remains intact |
 | `high-concurrency`, multi-tenant serving, analysis | NVFP4 + SGLang | Stable 80K+ context serving baseline and FlashInfer chunked prefill |
 
 This is a **workload-aware routing result**, not a claim that either artifact is universally better.
@@ -62,7 +64,20 @@ Integration profile:
 - Runtime context and KV capacity: 240,000 tokens
 - Qwen Code operating context: 120,000 tokens; existing 0.7 auto-compaction and non-thinking request policy retained
 
-See [`configs/ninfer-nvfp4-mtp3.example.sh`](configs/ninfer-nvfp4-mtp3.example.sh). [Local integration smoke results](benchmarks/ninfer-integration-2026-09-08.md) document startup, successful Codex Responses calls through a compatibility adapter, and the remaining lifecycle check. This is not a performance or long-agent qualification.
+Measured depth probes on 2026-09-09:
+
+| Label | Actual prompt tokens | Median decode | Draft acceptance |
+| --- | ---: | ---: | ---: |
+| Short | 54 | 222.0 tok/s | 83.92% |
+| 32K label | 38,717 | 190.6 tok/s | 75.55% |
+| 80K label | 83,917 | 176.9 tok/s | 73.84% |
+| 114K label | 113,956 | 169.8 tok/s | 75.82% |
+
+The 12 measured generations produced 3,600 output tokens with 2,502 / 3,243 proposed draft tokens accepted (**77.15%**). The short prompt differs materially from the historical Q5 short prompt, so its ratio is not a matched speedup.
+
+See [`configs/ninfer-nvfp4-mtp3.example.sh`](configs/ninfer-nvfp4-mtp3.example.sh) and the full [NInfer qualification report](benchmarks/ninfer-qualification-2026-09-09.md).
+
+A real Codex CLI bounded task at ~94K prompt tokens initially failed because the Responses compatibility layer forwarded `internal_chat_message_metadata_passthrough`. The NInfer-only adapter was changed to strip that unsupported metadata while preserving tool arguments, outputs, call IDs, and message content. The same task then completed in **33.409 s**, performed read → edit → test, and passed **3/3** independent fixture assertions. Its three generations decoded at **183.2 / 174.5 / 140.5 tok/s**. This is bounded tool-path evidence, not a representative long-agent average or full CourseBench qualification.
 
 On this workstation pattern, [`scripts/Start-NInferQwen38.ps1`](scripts/Start-NInferQwen38.ps1) submits the WSL server through `gpuq`; it does not bypass GPU ownership or silently stop another runtime. GPUQ operators can allowlist [`scripts/Stop-NInferQwen38.ps1`](scripts/Stop-NInferQwen38.ps1) as the exact cleanup command for this workload so WSL cancellation does not orphan the Linux/CUDA worker.
 
@@ -101,16 +116,19 @@ Tested configuration:
 
 Measured steady decode median was approximately **69.3 tok/s**; at 80K+ context it was approximately **60.8 tok/s**. See [`configs/sglang-nvfp4-128k.example.sh`](configs/sglang-nvfp4-128k.example.sh).
 
-## 7. Existing benchmark results
+## 7. Benchmark results
 
-### A. Synthetic / Serving Throughput vs Context Depth
+### A. Synthetic / serving decode throughput vs context depth
 
-| Runtime | Short | 32K | 80K | 114K | Context | Serving Role |
+| Runtime | Short | 32K label | 80K label | 114K label | Configured context | Role |
 | --- | ---: | ---: | ---: | ---: | ---: | --- |
 | SGLang NVFP4 | ~69.3 | — | ~60.8 | — | 128K | serving / concurrency baseline |
-| Q5 + MTP3 | 151.72 | 120.29 | 98.59 | 94.66 | 128K | single-user fast decode |
+| Q5 + MTP3 | 151.72 | 120.29 | 98.59 | 94.66 | 128K | default single-agent |
+| NInfer NVFP4 + MTP3 | **222.0** | **190.6** | **176.9** | **169.8** | 240K logical; 120K Qwen Code operating ceiling | qualification candidate |
 
-### B. Observed Autonomous Agent Run (CourseBench Long Task)
+For NInfer, the actual prompts behind the 32K / 80K / 114K labels were **38,717 / 83,917 / 113,956 tokens**. These values reuse the historical depth generator but are not a contemporaneous matched A/B against Q5. The short prompts also differ materially.
+
+### B. Observed autonomous agent run (CourseBench long task)
 
 | Metric | SGLang NVFP4 Baseline | Q5_K_M + llama.cpp + MTP3 (2026-08-19) |
 | --- | --- | --- |
@@ -120,12 +138,30 @@ Measured steady decode median was approximately **69.3 tok/s**; at 80K+ context 
 | Prefix Cache Reuse | Chunked prefill | **16.675M tokens cached** (96.8% hit rate) |
 | Peak VRAM | 29.8 GB | **28.63 GB** (3.98 GB headroom) |
 
+NInfer is intentionally absent from this autonomous-agent table because a comparable long-autonomous run has not been completed.
+
+### C. NInfer bounded Codex path at ~94K after adapter repair
+
+| Metric | Observation |
+| --- | --- |
+| Codex exit / wall time | 0 / **33.409 s** |
+| Successful tool executions | 2 (read; edit + test) |
+| API generations | 3 |
+| Prompt tokens per request | 94,338 / 94,544 / 94,682 |
+| Server decode tok/s | **183.2 / 174.5 / 140.5** |
+| Client-facing TTFT | 19.2 s / 197 ms / 313 ms |
+| Accepted / proposed draft tokens | 169 / 249 (**67.87%**) |
+| Independent fixture tests | **3/3 PASS** |
+
+These generations were only 48 / 79 / 120 output tokens, so they are not presented as a representative agent-average TPS benchmark.
+
 Missing cells were not measured under the same published suite and are intentionally left blank. See [methodology](docs/methodology.md) and the machine-readable [`runtime-comparison.csv`](benchmarks/runtime-comparison.csv).
 
 ## 8. Existing agent qualification
 
-| Runtime | Bounded coding | Long autonomous |
+| Runtime | Bounded coding / tool path | Long autonomous |
 | --- | --- | --- |
+| NInfer NVFP4 + MTP3 | Initial ~94K Codex run failed on Responses metadata compatibility; scoped adapter repair retest completed read/edit/test and independent tests 3/3 PASS | **Not yet qualified** |
 | SGLang NVFP4 | Runtime/tool correctness passed | Medium web task completed in 526.388 s; build gates and major browser flows passed; final implementation gate failed on one unauthorized generated-file change and mobile Sheet focus restoration |
 | Q5 + MTP3 | 10/10 TSX fixtures plus multi-file build/test 2/2 passed | **Historical run:** Rejected after 541 s without semantic edit (oversized regex).<br>**Re-qualification (2026-08-19):** Deep 100K+ trajectory under revised semantic guard; post-run canonical acceptance after test-harness fixes: `typecheck PASS`, `lint PASS`, `build PASS`, `vitest 12/12 PASS`. Comparable E2E wall-time was not captured. |
 
@@ -160,7 +196,7 @@ See [agent routing](docs/agent-routing.md) for failure handling and lifecycle bo
 4. Adapt the generic model/cache paths in `configs/`; retain loopback-only publishing.
 5. Start only one backend.
 6. Run `scripts/healthcheck.example.ps1` against `/v1/models`.
-7. For a new local qualification, run correctness before throughput, then bounded and long-agent suites separately. No such benchmark was rerun for this integration.
+7. For a new local qualification, run correctness before throughput, then bounded and long-agent suites separately. Do not promote the September 9 bounded NInfer retest to long-agent qualification.
 
 Full steps and evidence requirements are in [reproducibility.md](docs/reproducibility.md).
 
@@ -170,10 +206,11 @@ Full steps and evidence requirements are in [reproducibility.md](docs/reproducib
 - The long-agent comparison contains counted trajectories per reported runtime condition; it is not a statistical model-quality benchmark across multiple seeds.
 - Comparable end-to-end wall-time was not captured for the Q5 re-qualification run.
 - The exact private semantic-guard wrapper used in the qualification is not published here; the public repo includes the task-local Qwen Code settings and the guard policy/stop conditions needed to implement an equivalent controller.
-- SGLang and Q5 measurements do not populate every identical context depth.
+- Runtime depth points and prompt shapes are not fully identical. In particular, the NInfer 32K / 80K / 114K labels correspond to 38,717 / 83,917 / 113,956 actual prompt tokens, and the short prompt is not matched to Q5.
+- NInfer's 240K value is configured runtime/KV capacity; no 160K–240K workload is claimed here.
 - Driver, kernels, model revisions, runtime commits, and agent versions can materially change results.
 - No vision path was tested in these recipes.
-- **NInfer remains a qualification candidate.** The [September 9 report](benchmarks/ninfer-qualification-2026-09-09.md) records higher decode speed, an initial Codex metadata compatibility failure, and a scoped adapter repair that passed the same bounded 94K read/edit/test task in 33.409 s. Full autonomous qualification remains outstanding; the original failure is retained.
+- **NInfer remains a qualification candidate.** The [September 9 report](benchmarks/ninfer-qualification-2026-09-09.md) records higher raw decode speed, an initial Codex metadata compatibility failure, and a scoped adapter repair that passed the same bounded ~94K read/edit/test task in 33.409 s. Full autonomous qualification remains outstanding; the original failure is retained.
 
 More detail: [limitations.md](docs/limitations.md).
 
@@ -188,12 +225,3 @@ This project does not own, modify, sublicense, or redistribute the linked model 
 - [`Neroued/ninfer`](https://github.com/Neroued/ninfer) — NInfer runtime, Apache-2.0
 - [`ggml-org/llama.cpp`](https://github.com/ggml-org/llama.cpp) — MIT
 - [`sgl-project/sglang`](https://github.com/sgl-project/sglang) — Apache-2.0
-- [`QwenLM/qwen-code`](https://github.com/QwenLM/qwen-code) — Apache-2.0
-
-Always review the license and model card at the exact revision you download. The repository license does not replace upstream model or runtime licenses.
-
-The exact revisions and license sources checked for this release are recorded in [upstream-licenses.md](docs/upstream-licenses.md).
-
-## 13. License / acknowledgements
-
-The original recipe, documentation, small validation scripts, and diagrams in this repository are MIT licensed. Model artifacts and upstream runtimes retain their respective licenses. Thanks to the Qwen, RadixArk, bartowski, llama.cpp, SGLang, and Qwen Code maintainers and contributors.
