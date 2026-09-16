@@ -13,3 +13,4 @@ NInfer NVFP4 MTP3,NVFP4,114K,113956,169.8,FP8,draft-mtp n=3,depth probe,2026-09-
 NInfer NVFP4 MTP3,NVFP4,94K-codex-r1,94338,183.2,FP8,draft-mtp n=3,bounded Codex post-fix,48 output tokens; first generation; TTFT 19.2 s
 NInfer NVFP4 MTP3,NVFP4,94K-codex-r2,94544,174.5,FP8,draft-mtp n=3,bounded Codex post-fix,79 output tokens; cached follow-up; TTFT 197 ms
 NInfer NVFP4 MTP3,NVFP4,94K-codex-r3,94682,140.5,FP8,draft-mtp n=3,bounded Codex post-fix,120 output tokens; cached follow-up; TTFT 313 ms
+NInfer NVFP4 MTP3,NVFP4,live-agent-aggregate,88250,132.23,FP8,draft-mtp n=3,long-running real agent live snapshot,2026-09-16 in progress; 101 completed requests; 96241 output tokens; mean request TPS 140.59; median 136.2; MTP acceptance 51.71%; 88250 is minimum prompt depth observed in displayed segment; final task acceptance pending
