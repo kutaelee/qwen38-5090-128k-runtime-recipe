@@ -25,16 +25,16 @@ The latest fully summarized snapshot from this instrumented NInfer/NVFP4 workloa
 
 | Metric | Observation |
 | --- | ---: |
-| Completed requests | **562** |
-| Generated output tokens | **248,381** |
-| Aggregate decode throughput | **171.26 tok/s** |
-| Mean request decode throughput | **178.77 tok/s** |
-| Median request decode throughput | **180.55 tok/s** |
-| Aggregate MTP acceptance | **75.37%** |
+| Completed requests | **601** |
+| Generated output tokens | **259,335** |
+| Aggregate decode throughput | **171.05 tok/s** |
+| Mean request decode throughput | **178.36 tok/s** |
+| Median request decode throughput | **180.2 tok/s** |
+| Aggregate MTP acceptance | **75.60%** |
 
 `Aggregate decode throughput` is output-token weighted: total generated output tokens divided by the sum of each completed request's estimated decode time (`output_tokens / request_decode_tps`). It remains the preferred summary for this run because a 100-token request and a multi-thousand-token request should not receive equal weight.
 
-The aggregate values above have **not** been recomputed from the later request-level excerpt through `req#606`; the complete intervening telemetry needed for an honest new aggregate was not supplied. The later excerpt is therefore kept as additional depth evidence rather than being folded into made-up totals.
+The summary counter reports 601 completed requests, while the retained server request identifiers in the later excerpt extend through `req#606`. Request IDs are therefore treated as identifiers rather than assumed to be a contiguous completed-request count.
 
 ## Later deep-context evidence — req#598 to req#606
 
@@ -95,7 +95,7 @@ That retained log segment showed prompt sizes growing through at least **88,250 
 
 These request-level values are useful for showing that the aggregate is not produced only by short synthetic completions. The run also contains many shorter tool-turn generations, so mean request TPS is intentionally not treated as the headline throughput metric.
 
-The later 562-request aggregate is materially higher than this earlier point, but that should not be read as a controlled runtime improvement. The workload mix, prompt lengths, cache state, generation lengths, and speculative acceptance can all change over a long agent session.
+The later 601-request aggregate is materially higher than this earlier point, but that should not be read as a controlled runtime improvement. The workload mix, prompt lengths, cache state, generation lengths, and speculative acceptance can all change over a long agent session.
 
 ## Separate two-worker observation
 
@@ -110,7 +110,7 @@ Long-running NInfer agent tasks had already completed successfully in prior loca
 Accordingly, the evidence status is:
 
 - **Long-running practical use:** previously observed successful completion.
-- **Instrumented long-running telemetry:** fully summarized through 562 requests / 248,381 output tokens / 171.26 tok/s aggregate decode.
+- **Instrumented long-running telemetry:** fully summarized through 601 requests / 259,335 output tokens / 171.05 tok/s aggregate decode / 75.60% MTP acceptance.
 - **Deep-context request evidence:** retained through `req#606`, reaching **160,688 prompt tokens**.
 - **Current run task-level acceptance:** pending because the workload has not yet been published as completed with independent acceptance evidence.
 - **Matched MTP vs DFlash A/B:** not established.
