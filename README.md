@@ -265,7 +265,7 @@ More detail: [docs/limitations.md](docs/limitations.md)
 
 This repo does not redistribute the linked model weights.
 
-- [`Qwen/Qwen3.8-27B`](https://huggingface.co/Qwen3.8-27B)
+- [`Qwen/Qwen3.8-27B`](https://huggingface.co/Qwen/Qwen3.8-27B)
 - [`neroued/Qwen3.8-27B-nvfp4-NInfer`](https://huggingface.co/neroued/Qwen3.8-27B-nvfp4-NInfer)
 - [`RadixArk/Qwen3.8-27B-NVFP4`](https://huggingface.co/RadixArk/Qwen3.8-27B-NVFP4)
 - [`bartowski/Qwen3.8-27B-GGUF`](https://huggingface.co/bartowski/Qwen3.8-27B-GGUF)
