@@ -27,15 +27,17 @@
 | 83,917 | 176.9 tok/s | 73.84% |
 | 113,956 | 169.8 tok/s | 75.82% |
 
-별도로 실제 장기 코딩 에이전트 작업의 최신 진행 중 스냅샷은 다음까지 올라갔습니다.
+별도로 실제 Hermes 장기 코딩 에이전트 작업의 최신 진행 중 스냅샷은 다음까지 올라갔습니다.
 
-- 완료 요청 562개
-- 생성 output tokens 248,381
-- output-token 가중 aggregate decode 171.26 tok/s
-- 요청별 decode 평균 178.77 tok/s
-- 요청별 decode 중앙값 180.55 tok/s
-- 전체 MTP 수락률 75.37%
-- 이전에 보존된 로그 구간에서는 프롬프트가 최소 88,250토큰까지 확인됐지만, 562-request 스냅샷 기준 최신 최대 context는 아직 다시 산출하지 않았음
+- 완료 요청 601개
+- 생성 output tokens 259,335
+- output-token 가중 aggregate decode 171.05 tok/s
+- 요청별 decode 평균 178.36 tok/s
+- 요청별 decode 중앙값 180.2 tok/s
+- 전체 MTP 수락률 75.60%
+- 보존된 request-level 로그에서 **160,688 prompt tokens**까지 확인
+
+160,688 prompt tokens였던 한 요청은 139.1 tok/s로 decode됐고, 같은 146K~160K 구간의 인접 요청은 cache 상태, generation 형태, MTP 수락률에 따라 더 높은 값도 나왔습니다. 이는 실제 workload 증거이지 160K에서 조건을 고정한 depth benchmark는 아닙니다.
 
 다만 이 수치를 Q5와의 순수한 런타임 성능 차이로 보면 안 됩니다. Q5와 NInfer는 같은 시점, 같은 워크로드로 돌린 정식 A/B가 아닙니다. 최신 NInfer 수치도 아직 완료된 qualification이 아니라 진행 중 live telemetry입니다.
 
@@ -90,7 +92,9 @@ GPU에는 생성 런타임을 동시에 여러 개 상주시키지 않습니다.
 - 동시 요청 1
 - 런타임/KV 설정 용량 240,000토큰
 
-Qwen Code에서는 여전히 **120,000토큰을 운영 상한**으로 두고 기존 0.7 auto-compaction 정책을 사용합니다. 위의 240K는 런타임이 잡을 수 있는 용량이지, 240K까지 에이전트 품질을 검증했다는 뜻은 아닙니다.
+현재 **Hermes 장기 에이전트 경로**는 `context_length: 240000`, `max_tokens: 16384`를 사용하며 NInfer 서버의 `max_model_len: 240000`과 맞춰져 있습니다. `max_tokens`를 먼저 예약한 뒤 0.75 compaction 정책을 적용한다고 계산하면 임계치는 167,712토큰입니다. 보존된 실행은 현재 160,688 prompt tokens까지 올라갔지만, 240K 용량이 곧 240K까지 유용한 에이전트 동작을 검증했다는 뜻은 아닙니다.
+
+별도 Qwen Code 경로에서는 여전히 **120,000토큰 운영 상한**과 해당 경로의 compaction 정책을 사용합니다. 결과를 재현할 때 harness별 context 설정을 구분해야 합니다.
 
 설정 예시: [`configs/ninfer-nvfp4-mtp3.example.sh`](configs/ninfer-nvfp4-mtp3.example.sh)
 
@@ -122,7 +126,9 @@ NInfer는 이전 로컬 사용에서도 긴 코딩 에이전트 작업을 정상
 
 [NInfer 장기 에이전트 계측](benchmarks/ninfer-long-agent-live-2026-09-16.md)
 
-최신 live snapshot은 **562 requests / 248,381 output tokens / 171.26 tok/s aggregate decode / MTP 수락률 75.37%**까지 올라갔습니다. 다만 아직 진행 중 실행으로 취급하고 있어 최종 task acceptance, 최신 최대 context, 오류·cleanup 결과는 완료된 qualification 증거로 올리지 않았습니다.
+최신 live aggregate는 **601 requests / 259,335 output tokens / 171.05 tok/s aggregate decode / MTP 수락률 75.60%**까지 올라갔고, 이후 보존된 로그는 **160,688 prompt tokens**까지 확인됩니다. 다만 아직 진행 중 실행으로 취급하고 있어 최종 task acceptance와 오류·cleanup 결과는 완료된 qualification 증거로 올리지 않았습니다.
+
+별도의 과거 2-worker 실험에서는 context budget을 약 120K씩 두 agent worker로 나눴고, worker당 약 150 tok/s에 가까운 값, 합산 약 300 tok/s generation throughput을 관측했습니다. 이는 single-stream 300 tok/s가 아니며, 전체 raw telemetry bundle이 남아 있지 않아 qualification-grade 데이터가 아닌 운영 관측으로만 기록합니다.
 
 ## llama.cpp Q5_K_M + MTP3
 
@@ -250,10 +256,11 @@ CSV: [`benchmarks/runtime-comparison.csv`](benchmarks/runtime-comparison.csv)
 - Q5와 NInfer 장기 작업은 동일한 workload의 정식 A/B가 아닙니다.
 - 각 런타임의 짧은 입력과 depth 측정 프롬프트가 완전히 동일하지 않습니다.
 - Q5 재검증에서는 NInfer와 비교 가능한 end-to-end wall time을 수집하지 않았습니다.
-- 240K는 NInfer 런타임/KV 설정 용량이며, 240K 에이전트 품질을 검증했다는 의미가 아닙니다.
-- 현재 NInfer 562-request 스냅샷은 아직 live telemetry이며 완료된 end-to-end qualification이 아닙니다.
-- 562-request 요약에서는 최신 최대 prompt/context를 다시 산출하지 않았고, 현재 보존된 하한은 이전 로그 구간의 88,250토큰입니다.
-- 드라이버, 커널, 런타임 커밋, 모델 리비전, 하니스, tool-call 패턴, MTP 수락률에 따라 결과는 달라질 수 있습니다.
+- 240K는 NInfer/Hermes 설정 context 용량이며, 240K 에이전트 품질을 검증했다는 의미가 아닙니다.
+- 현재 NInfer 601-request 스냅샷은 아직 live telemetry이며 완료된 end-to-end qualification이 아닙니다.
+- MTP3 실제 요청 증거는 160,688 prompt tokens까지 확보됐지만 180K, 200K, 240K 동작을 증명하지 않으며 DFlash와 동일 조건 A/B도 아닙니다.
+- 별도 약 300 tok/s 2-worker 관측은 120K급 worker 두 개의 aggregate throughput이지 single-stream decode가 아닙니다.
+- 드라이버, 커널, 런타임 커밋, 모델 리비전, 하니스, tool-call 패턴, cache 상태, MTP 수락률에 따라 결과는 달라질 수 있습니다.
 - 비전 경로는 테스트하지 않았습니다.
 
 더 자세한 한계: [docs/limitations.md](docs/limitations.md)
