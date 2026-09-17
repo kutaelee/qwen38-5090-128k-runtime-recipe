@@ -27,15 +27,17 @@ On my RTX 5090, NInfer with NVFP4 + FP8 KV + MTP3 measured:
 | 83,917 | 176.9 tok/s | 73.84% |
 | 113,956 | 169.8 tok/s | 75.82% |
 
-A separate long-running coding-agent workload reached this later live snapshot:
+A separate long-running Hermes coding-agent workload reached this later live snapshot:
 
-- 562 completed requests
-- 248,381 generated output tokens
-- 171.26 tok/s output-weighted aggregate decode
-- 178.77 tok/s mean request decode
-- 180.55 tok/s median request decode
-- 75.37% aggregate MTP acceptance
-- an earlier retained log segment had already reached at least 88,250 prompt tokens; the latest maximum context has not yet been re-derived from the 562-request snapshot
+- 601 completed requests
+- 259,335 generated output tokens
+- 171.05 tok/s output-weighted aggregate decode
+- 178.36 tok/s mean request decode
+- 180.2 tok/s median request decode
+- 75.60% aggregate MTP acceptance
+- retained request-level evidence through **160,688 prompt tokens**
+
+The deep-context excerpt was still decoding at 139.1 tok/s at 160,688 prompt tokens on one request, while neighboring requests in the same 146K–160K region ranged much higher depending on cache state, generation shape, and MTP acceptance. This is practical workload evidence, not a controlled 160K depth benchmark.
 
 Those numbers are from local measurements, not a matched benchmark against every other runtime. The Q5 and NInfer runs were done at different times and with different workloads, so I do not treat the gap as a clean runtime-only speedup. The latest NInfer figures are still live telemetry rather than a completed qualification result.
 
@@ -90,7 +92,9 @@ This is currently the fastest single-agent route I have measured on this machine
 - concurrency 1
 - configured runtime/KV capacity: 240,000 tokens
 
-For Qwen Code I still use a **120,000-token working ceiling** with the existing 0.7 auto-compaction policy. The 240K figure above is runtime capacity, not a claim that I have validated useful agent behavior all the way to 240K.
+The current **Hermes long-agent route** uses `context_length: 240000` with `max_tokens: 16384`, matching the NInfer server's reported `max_model_len: 240000`. With a 0.75 compaction policy applied after reserving `max_tokens`, the arithmetic threshold is 167,712 tokens. The retained run has now reached 160,688 prompt tokens without treating 240K capacity as proof of useful behavior all the way to 240K.
+
+For the separate Qwen Code route I still use a **120,000-token working ceiling** with its existing compaction policy. Keep the harness-specific limits separate when reproducing results.
 
 Example config: [`configs/ninfer-nvfp4-mtp3.example.sh`](configs/ninfer-nvfp4-mtp3.example.sh)
 
@@ -118,7 +122,9 @@ The instrumented run that started on 2026-09-16 is kept separately here:
 
 [NInfer long-agent telemetry](benchmarks/ninfer-long-agent-live-2026-09-16.md)
 
-The latest live snapshot reached **562 requests / 248,381 output tokens / 171.26 tok/s aggregate decode / 75.37% MTP acceptance**. The workload is still treated as in progress, so final task acceptance, final maximum context, and cleanup/failure accounting remain pending rather than being presented as completed qualification evidence.
+The latest live aggregate reached **601 requests / 259,335 output tokens / 171.05 tok/s aggregate decode / 75.60% MTP acceptance**. A retained later excerpt reaches **160,688 prompt tokens**. The workload is still treated as in progress, so final task acceptance and cleanup/failure accounting remain pending rather than being presented as completed qualification evidence.
+
+A separate historical two-worker experiment split the context budget across two ~120K agent workers and observed close to 150 tok/s per worker, or roughly 300 tok/s aggregate generation throughput. That observation is not a controlled single-stream benchmark and the full raw telemetry bundle was not retained, so it is documented as operational evidence rather than qualification-grade data.
 
 ## llama.cpp Q5_K_M + MTP3
 
@@ -246,10 +252,11 @@ Full guide: [docs/reproducibility.md](docs/reproducibility.md)
 - The Q5 and NInfer long-agent runs are not matched A/B workloads.
 - The short prompts and context-depth probes are not identical between every runtime.
 - I did not capture comparable end-to-end wall time for the Q5 re-qualification.
-- 240K is NInfer runtime/KV capacity in this setup; it is not evidence of validated 240K agent quality.
-- The current NInfer 562-request snapshot is still live telemetry, not a completed end-to-end qualification.
-- The latest NInfer maximum prompt/context has not yet been re-derived from the 562-request summary; the retained lower bound remains 88,250 tokens from an earlier log segment.
-- Driver, kernels, runtime commits, model revisions, harness behavior, tool patterns, and MTP acceptance can all move the numbers.
+- 240K is NInfer/Hermes configured context capacity in this setup; it is not evidence of validated 240K agent quality.
+- The current NInfer 601-request snapshot is still live telemetry, not a completed end-to-end qualification.
+- Practical MTP3 request evidence now reaches 160,688 prompt tokens, but this does not establish behavior at 180K, 200K, or 240K and is not a matched DFlash comparison.
+- The separate ~300 tok/s two-worker observation is aggregate throughput across two ~120K workers, not single-stream decode throughput.
+- Driver, kernels, runtime commits, model revisions, harness behavior, tool patterns, cache state, and MTP acceptance can all move the numbers.
 - Vision was not tested here.
 
 More detail: [docs/limitations.md](docs/limitations.md)
@@ -258,7 +265,7 @@ More detail: [docs/limitations.md](docs/limitations.md)
 
 This repo does not redistribute the linked model weights.
 
-- [`Qwen/Qwen3.8-27B`](https://huggingface.co/Qwen/Qwen3.8-27B)
+- [`Qwen/Qwen3.8-27B`](https://huggingface.co/Qwen3.8-27B)
 - [`neroued/Qwen3.8-27B-nvfp4-NInfer`](https://huggingface.co/neroued/Qwen3.8-27B-nvfp4-NInfer)
 - [`RadixArk/Qwen3.8-27B-NVFP4`](https://huggingface.co/RadixArk/Qwen3.8-27B-NVFP4)
 - [`bartowski/Qwen3.8-27B-GGUF`](https://huggingface.co/bartowski/Qwen3.8-27B-GGUF)
