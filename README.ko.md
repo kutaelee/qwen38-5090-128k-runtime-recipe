@@ -27,17 +27,17 @@
 | 83,917 | 176.9 tok/s | 73.84% |
 | 113,956 | 169.8 tok/s | 75.82% |
 
-별도로 실제 장기 코딩 에이전트 작업을 돌렸을 때, 진행 중 스냅샷은 다음까지 올라갔습니다.
+별도로 실제 장기 코딩 에이전트 작업의 최신 진행 중 스냅샷은 다음까지 올라갔습니다.
 
-- 완료 요청 101개
-- 생성 output tokens 96,241
-- output-token 가중 aggregate decode 132.23 tok/s
-- 요청별 decode 평균 140.59 tok/s
-- 요청별 decode 중앙값 136.2 tok/s
-- 전체 MTP 수락률 51.71%
-- 보존된 로그 구간에서 확인된 프롬프트 최소 88,250토큰
+- 완료 요청 562개
+- 생성 output tokens 248,381
+- output-token 가중 aggregate decode 171.26 tok/s
+- 요청별 decode 평균 178.77 tok/s
+- 요청별 decode 중앙값 180.55 tok/s
+- 전체 MTP 수락률 75.37%
+- 이전에 보존된 로그 구간에서는 프롬프트가 최소 88,250토큰까지 확인됐지만, 562-request 스냅샷 기준 최신 최대 context는 아직 다시 산출하지 않았음
 
-다만 이 수치를 Q5와의 순수한 런타임 성능 차이로 보면 안 됩니다. Q5와 NInfer는 같은 시점, 같은 워크로드로 돌린 정식 A/B가 아닙니다.
+다만 이 수치를 Q5와의 순수한 런타임 성능 차이로 보면 안 됩니다. Q5와 NInfer는 같은 시점, 같은 워크로드로 돌린 정식 A/B가 아닙니다. 최신 NInfer 수치도 아직 완료된 qualification이 아니라 진행 중 live telemetry입니다.
 
 ## 왜 런타임을 세 개로 나눴나
 
@@ -118,11 +118,11 @@ NInfer 전용 어댑터에서 이 메타데이터만 제거하고 tool argument,
 
 NInfer는 이전 로컬 사용에서도 긴 코딩 에이전트 작업을 정상 완료한 적이 있습니다. 다만 그때는 현재와 같은 수준으로 telemetry를 보존하지 않았기 때문에, 과거 실행에 수치를 소급해서 붙이지 않았습니다.
 
-2026-09-16 계측 실행은 별도로 보존했습니다.
+2026-09-16에 시작한 계측 실행은 별도로 보존했습니다.
 
 [NInfer 장기 에이전트 계측](benchmarks/ninfer-long-agent-live-2026-09-16.md)
 
-공개된 스냅샷 시점에는 작업이 아직 진행 중이었기 때문에 최종 task acceptance는 완료된 것처럼 적지 않았습니다.
+최신 live snapshot은 **562 requests / 248,381 output tokens / 171.26 tok/s aggregate decode / MTP 수락률 75.37%**까지 올라갔습니다. 다만 아직 진행 중 실행으로 취급하고 있어 최종 task acceptance, 최신 최대 context, 오류·cleanup 결과는 완료된 qualification 증거로 올리지 않았습니다.
 
 ## llama.cpp Q5_K_M + MTP3
 
@@ -251,7 +251,8 @@ CSV: [`benchmarks/runtime-comparison.csv`](benchmarks/runtime-comparison.csv)
 - 각 런타임의 짧은 입력과 depth 측정 프롬프트가 완전히 동일하지 않습니다.
 - Q5 재검증에서는 NInfer와 비교 가능한 end-to-end wall time을 수집하지 않았습니다.
 - 240K는 NInfer 런타임/KV 설정 용량이며, 240K 에이전트 품질을 검증했다는 의미가 아닙니다.
-- 과거 NInfer 장기 성공 실행은 현재와 동일한 telemetry 형태로 보존되지 않았습니다.
+- 현재 NInfer 562-request 스냅샷은 아직 live telemetry이며 완료된 end-to-end qualification이 아닙니다.
+- 562-request 요약에서는 최신 최대 prompt/context를 다시 산출하지 않았고, 현재 보존된 하한은 이전 로그 구간의 88,250토큰입니다.
 - 드라이버, 커널, 런타임 커밋, 모델 리비전, 하니스, tool-call 패턴, MTP 수락률에 따라 결과는 달라질 수 있습니다.
 - 비전 경로는 테스트하지 않았습니다.
 

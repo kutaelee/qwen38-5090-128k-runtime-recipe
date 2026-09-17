@@ -27,17 +27,17 @@ On my RTX 5090, NInfer with NVFP4 + FP8 KV + MTP3 measured:
 | 83,917 | 176.9 tok/s | 73.84% |
 | 113,956 | 169.8 tok/s | 75.82% |
 
-A separate long-running coding-agent session reached this snapshot while it was still running:
+A separate long-running coding-agent workload reached this later live snapshot:
 
-- 101 completed requests
-- 96,241 generated output tokens
-- 132.23 tok/s output-weighted aggregate decode
-- 140.59 tok/s mean request decode
-- 136.2 tok/s median request decode
-- 51.71% aggregate MTP acceptance
-- at least 88,250 prompt tokens observed in the retained log segment
+- 562 completed requests
+- 248,381 generated output tokens
+- 171.26 tok/s output-weighted aggregate decode
+- 178.77 tok/s mean request decode
+- 180.55 tok/s median request decode
+- 75.37% aggregate MTP acceptance
+- an earlier retained log segment had already reached at least 88,250 prompt tokens; the latest maximum context has not yet been re-derived from the 562-request snapshot
 
-Those numbers are from local measurements, not a matched benchmark against every other runtime. The Q5 and NInfer runs were done at different times and with different workloads, so I do not treat the gap as a clean runtime-only speedup.
+Those numbers are from local measurements, not a matched benchmark against every other runtime. The Q5 and NInfer runs were done at different times and with different workloads, so I do not treat the gap as a clean runtime-only speedup. The latest NInfer figures are still live telemetry rather than a completed qualification result.
 
 ## Why multiple runtimes?
 
@@ -114,11 +114,11 @@ Full notes: [NInfer qualification](benchmarks/ninfer-qualification-2026-09-09.md
 
 NInfer has also completed longer local coding-agent jobs for me. Earlier successful runs were not recorded with the same telemetry bundle, so I do not retroactively attach made-up numbers to them.
 
-The instrumented 2026-09-16 run is kept separately here:
+The instrumented run that started on 2026-09-16 is kept separately here:
 
 [NInfer long-agent telemetry](benchmarks/ninfer-long-agent-live-2026-09-16.md)
 
-At the published snapshot the workload was still running, so its final task acceptance was intentionally left pending.
+The latest live snapshot reached **562 requests / 248,381 output tokens / 171.26 tok/s aggregate decode / 75.37% MTP acceptance**. The workload is still treated as in progress, so final task acceptance, final maximum context, and cleanup/failure accounting remain pending rather than being presented as completed qualification evidence.
 
 ## llama.cpp Q5_K_M + MTP3
 
@@ -247,7 +247,8 @@ Full guide: [docs/reproducibility.md](docs/reproducibility.md)
 - The short prompts and context-depth probes are not identical between every runtime.
 - I did not capture comparable end-to-end wall time for the Q5 re-qualification.
 - 240K is NInfer runtime/KV capacity in this setup; it is not evidence of validated 240K agent quality.
-- Earlier successful NInfer long runs were not retained with a comparable telemetry bundle.
+- The current NInfer 562-request snapshot is still live telemetry, not a completed end-to-end qualification.
+- The latest NInfer maximum prompt/context has not yet been re-derived from the 562-request summary; the retained lower bound remains 88,250 tokens from an earlier log segment.
 - Driver, kernels, runtime commits, model revisions, harness behavior, tool patterns, and MTP acceptance can all move the numbers.
 - Vision was not tested here.
 
