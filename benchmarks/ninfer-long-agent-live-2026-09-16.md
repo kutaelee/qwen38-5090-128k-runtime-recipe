@@ -2,7 +2,7 @@
 
 This note preserves an **in-progress** long-running agent telemetry series from the local RTX 5090 workstation. It is not a final benchmark result and must not be presented as a completed qualification until the workload exits and its task-level acceptance is recorded.
 
-## Runtime
+## Runtime and harness
 
 - Model: `neroued/Qwen3.8-27B-nvfp4-NInfer`
 - Runtime: NInfer
@@ -11,10 +11,17 @@ This note preserves an **in-progress** long-running agent telemetry series from 
 - Speculation: MTP3
 - Concurrency: 1 active generation request
 - Workload: real multi-turn agent work using `openai-chat` with tool calls
+- NInfer reported `max_model_len`: **240,000 tokens**
+- Hermes `qwen38-ninfer` `context_length`: **240,000 tokens**
+- Hermes `max_tokens`: **16,384 tokens**
 
-## Latest live snapshot — 2026-09-17
+The NInfer server and Hermes route were therefore both configured for a 240K context window during the deep-context observations below. This is different from the separate Qwen Code route documented elsewhere in the repository.
 
-The latest reported snapshot from this instrumented NInfer/NVFP4 workload reached:
+If a 0.75 compaction policy is applied after reserving `max_tokens`, the arithmetic threshold is `(240,000 - 16,384) × 0.75 = 167,712` tokens. That value is included only to make the configuration math explicit; it is not presented as a server-reported compaction event.
+
+## Latest aggregate snapshot — 2026-09-17
+
+The latest fully summarized snapshot from this instrumented NInfer/NVFP4 workload reached:
 
 | Metric | Observation |
 | --- | ---: |
@@ -27,9 +34,40 @@ The latest reported snapshot from this instrumented NInfer/NVFP4 workload reache
 
 `Aggregate decode throughput` is output-token weighted: total generated output tokens divided by the sum of each completed request's estimated decode time (`output_tokens / request_decode_tps`). It remains the preferred summary for this run because a 100-token request and a multi-thousand-token request should not receive equal weight.
 
-The latest summary above did not include a newly derived maximum prompt/context value. The previously retained log segment had already shown prompt sizes reaching at least **88,250 tokens**. That older lower bound remains valid evidence, but it is not presented as the maximum context reached by the 562-request snapshot.
+The aggregate values above have **not** been recomputed from the later request-level excerpt through `req#606`; the complete intervening telemetry needed for an honest new aggregate was not supplied. The later excerpt is therefore kept as additional depth evidence rather than being folded into made-up totals.
 
-The current run is still treated as live telemetry. Final task acceptance, final maximum context, runtime/adapter failure accounting, and cleanup evidence remain pending until the workload finishes and those artifacts are captured.
+## Later deep-context evidence — req#598 to req#606
+
+A later retained log excerpt extends the observed prompt depth from the earlier 88K region to **160,688 prompt tokens** while the same NInfer + NVFP4 + FP8 KV + MTP3 route remained active.
+
+Selected completed requests:
+
+| Request | Prompt | Output | Cache | Prefill | Decode | MTP acceptance | TTFT |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `req#598` | 146,659 | 1,573 | 99.8% | 973 tok/s | 172.4 tok/s | 87.6% | 322 ms |
+| `req#599` | 148,339 | 65 | 76.7% | 1.76k tok/s | 178.8 tok/s | 98.0% | 19.8 s |
+| `req#600` | 148,881 | 483 | 99.7% | 973 tok/s | 177.6 tok/s | 84.7% | 564 ms |
+| `req#601` | 139,078 | 1,480 | 0.0% | 3.24k tok/s | 147.3 tok/s | 64.7% | 43.0 s |
+| `req#602` | 152,995 | 32 | 0.0% | 3.06k tok/s | 155.3 tok/s | 80.0% | 50.1 s |
+| `req#603` | 155,886 | 55 | 98.2% | 2.19k tok/s | 178.2 tok/s | 93.3% | 1.4 s |
+| `req#604` | 158,217 | 1,095 | 98.6% | 2.02k tok/s | 144.9 tok/s | 65.5% | 1.2 s |
+| `req#605` | 159,538 | 1,034 | 95.9% | 1.98k tok/s | 186.5 tok/s | 94.1% | 3.4 s |
+| `req#606` | **160,688** | 418 | 95.2% | 1.95k tok/s | **139.1 tok/s** | 62.5% | 4.0 s |
+
+This excerpt is useful for one specific claim: **the retained MTP3 run was still producing usable decode throughput around 160K prompt depth.** It does not establish what happens at 180K, 200K, or 240K, and it is not a matched comparison against DFlash.
+
+The request-level decode range in this excerpt is wide because generation length, cache state, speculative acceptance, and tool-turn shape differ. For example, `req#605` decoded at 186.5 tok/s with 94.1% MTP acceptance, while `req#606` decoded at 139.1 tok/s with 62.5% acceptance only ~1.1K prompt tokens later. Prompt depth alone is therefore not enough to explain request throughput.
+
+### Prefill observations
+
+The same excerpt also contains two uncached long-prompt requests:
+
+- `req#601`: 139,078 prompt tokens, 0% cache, **3.24k tok/s request-level prefill**, 43.0 s TTFT.
+- `req#602`: 152,995 prompt tokens, 0% cache, **3.06k tok/s request-level prefill**, 50.1 s TTFT.
+
+Five-second server telemetry during the later prefill sequence briefly reported **5.73k tok/s** (`28,672 tokens / 5 s`) and other windows in the ~4.3–4.9k tok/s range. Those interval counters are not directly interchangeable with whole-request prefill rates, and they should not be used as a clean cross-runtime comparison without matched cache state and prompt shape.
+
+Cached requests show the opposite tradeoff clearly: reported whole-request prefill rates can look lower while TTFT collapses to sub-second or low-single-digit seconds because most of the prefix is reused. Cache percentage, TTFT, request-level prefill, and interval prefill are therefore retained as separate metrics.
 
 ## Earlier retained snapshot — 2026-09-16
 
@@ -59,6 +97,12 @@ These request-level values are useful for showing that the aggregate is not prod
 
 The later 562-request aggregate is materially higher than this earlier point, but that should not be read as a controlled runtime improvement. The workload mix, prompt lengths, cache state, generation lengths, and speculative acceptance can all change over a long agent session.
 
+## Separate two-worker observation
+
+In a separate local experiment, the 240K budget was split across **two ~120K agent workers**. Each worker was observed near **150 tok/s**, for roughly **300 tok/s aggregate generation throughput** across the two concurrent workers.
+
+This is an operational observation, not a controlled single-stream benchmark. It trades per-worker context for aggregate throughput and should not be compared directly with the single-request decode figures above. The raw telemetry bundle for that historical two-worker run is not retained here, so the repository does not treat the ~300 tok/s aggregate figure as qualification-grade evidence.
+
 ## Long-running-use status
 
 Long-running NInfer agent tasks had already completed successfully in prior local use before this telemetry series. Those earlier successful runs were not retained in this repository as a comparable, instrumented telemetry bundle, so this note does **not** retroactively assign them synthetic metrics or a reproducible benchmark score.
@@ -66,15 +110,17 @@ Long-running NInfer agent tasks had already completed successfully in prior loca
 Accordingly, the evidence status is:
 
 - **Long-running practical use:** previously observed successful completion.
-- **Instrumented long-running telemetry:** observed through 562 requests / 248,381 output tokens / 171.26 tok/s aggregate decode.
+- **Instrumented long-running telemetry:** fully summarized through 562 requests / 248,381 output tokens / 171.26 tok/s aggregate decode.
+- **Deep-context request evidence:** retained through `req#606`, reaching **160,688 prompt tokens**.
 - **Current run task-level acceptance:** pending because the workload has not yet been published as completed with independent acceptance evidence.
+- **Matched MTP vs DFlash A/B:** not established.
 - **Matched Q5 vs NInfer A/B:** not established; the historical Q5 long-agent run used a different workload/harness condition.
 
 ## Comparison boundary
 
 The historical Q5/MTP3 qualification recorded **109.51 tok/s average decode** on a 100K+ autonomous coding trajectory. The latest NInfer live snapshot is numerically higher, but the two runs are not a matched contemporaneous A/B. The repository therefore reports both observations without claiming a causal runtime-only speedup or a universal winner.
 
-The September 9 depth probes remain separate evidence: NInfer measured 190.6 tok/s at 38,717 prompt tokens, 176.9 tok/s at 83,917, and 169.8 tok/s at 113,956. Synthetic/depth decode, live agent aggregate decode, and end-to-end task completion are reported separately.
+The September 9 depth probes remain separate evidence: NInfer measured 190.6 tok/s at 38,717 prompt tokens, 176.9 tok/s at 83,917, and 169.8 tok/s at 113,956. The September 17 live excerpt extends practical prompt depth evidence to 160,688 tokens, but under a changing agent workload rather than a controlled depth probe. Synthetic/depth decode, live agent decode, prefill behavior, and end-to-end task completion are reported separately.
 
 ## Completion update required
 
@@ -87,4 +133,4 @@ When the current workload finishes, update this file with:
 5. any CUDA/OOM/runtime/adapter failures;
 6. whether cleanup released the runtime/port/VRAM correctly.
 
-Until then, the latest numbers remain an explicitly dated **live snapshot**, not a final qualification result.
+Until then, the latest numbers remain explicitly dated **live telemetry**, not a final qualification result.
