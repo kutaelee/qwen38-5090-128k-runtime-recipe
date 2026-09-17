@@ -1,134 +1,279 @@
-# RTX 5090에서 실행하는 Qwen3.8-27B — 128K 멀티 런타임 에이전트 구성 가이드
+# RTX 5090 한 장으로 Qwen3.8-27B 돌리기
 
 [English](README.md) · [한국어](README.ko.md)
 
-RTX 5090 한 대에서 Qwen3.8-27B를 실행하기 위한 재현 가능한 추론 설정, 벤치마크, 작업별 런타임 선택 가이드입니다. **모델 가중치를 수정하거나 배포하는 저장소가 아닙니다.**
+32 GB RTX 5090 한 장에서 Qwen3.8-27B를 실제로 굴리면서 정리한 설정과 측정값입니다.
 
-NInfer NVFP4 + FP8 KV + MTP3는 depth 측정에서 약 38.7K **190.6 tok/s**, 83.9K **176.9 tok/s**, 114K **169.8 tok/s**를 기록했습니다. 2026-09-16 실제 장기 에이전트 작업의 진행 중 스냅샷에서는 **101개 완료 요청, 96,241 output tokens, 132.23 tok/s aggregate decode, MTP 수락률 51.71%**를 관측했습니다. NInfer 장기 작업은 이전 로컬 사용에서도 정상 완료된 사례가 있습니다.
+이 저장소에서는 용도에 따라 세 가지 런타임을 나눠 씁니다.
 
-Q5_K_M + MTP3는 완료된 100K+ 자율 코딩 실행에서 평균 약 **109.5 tok/s**, 추측 토큰 수락률 **89.6%**를 기록했고, 완료 후 acceptance 묶음이 저장소에 가장 완전하게 남아 있어 보수적 기본값으로 유지합니다. 이는 NInfer가 장기 작업을 완료하지 못한다는 의미가 아니라, 현재 공개된 증거 보존 수준이 다르기 때문입니다.
+- **NInfer + NVFP4 + FP8 KV + MTP3**: 빠른 단일 에이전트 작업
+- **llama.cpp + Q5_K_M + MTP3**: 검증 기록이 더 잘 남아 있는 보수적인 대안
+- **SGLang + NVFP4**: 서빙·동시 요청 실험용
 
-[한국어 벤치마크](benchmarks/README.ko.md) · [NInfer 실시간 장기 계측](benchmarks/ninfer-long-agent-live-2026-09-16.md) · [NInfer depth/Codex 검증](benchmarks/ninfer-qualification-2026-09-09.ko.md) · [재현 절차(영문)](docs/reproducibility.md) · [Hugging Face 소개](https://huggingface.co/spaces/kutaelee/Qwen3.8-27B-RTX5090-128K-Recipe)
+모델 가중치를 수정하거나 재배포하는 저장소는 아닙니다. 실제로 사용한 런타임 설정, 정확한 리비전, 벤치마크, 실패 사례를 한곳에 모아 재현하기 쉽게 만드는 것이 목적입니다.
 
-이 문서는 한국어 설명과 주요 결과를 정리한 안내입니다. 전체 구성 식별자와 상세 운영 절차는 [영문 README](README.md) 및 연결된 원문을 함께 확인하세요.
+[벤치마크](benchmarks/runtime-comparison.ko.md) · [NInfer 장기 에이전트 계측](benchmarks/ninfer-long-agent-live-2026-09-16.md) · [NInfer 검증 기록](benchmarks/ninfer-qualification-2026-09-09.ko.md) · [재현 가이드](docs/reproducibility.md) · [Hugging Face 소개](https://huggingface.co/spaces/kutaelee/Qwen3.8-27B-RTX5090-128K-Recipe)
 
-## 구성 개요
+![Workload-aware runtime routing](assets/architecture.svg)
 
-32 GB RTX 5090 한 대에서 생성 런타임을 **하나씩** 실행합니다. 작업 라우터는 자신이 관리하는 이전 런타임을 종료하고 포트와 VRAM 해제를 확인한 뒤, 로컬 루프백 주소에서 선택한 백엔드를 시작합니다.
+## 먼저 결과부터
 
-| 용도 | 런타임 | 현재 상태 |
+내 RTX 5090에서 NInfer + NVFP4 + FP8 KV + MTP3로 측정한 값입니다.
+
+| 실제 프롬프트 토큰 | 디코드 속도 | Draft 수락률 |
+| ---: | ---: | ---: |
+| 54 | 222.0 tok/s | 83.92% |
+| 38,717 | 190.6 tok/s | 75.55% |
+| 83,917 | 176.9 tok/s | 73.84% |
+| 113,956 | 169.8 tok/s | 75.82% |
+
+별도로 실제 장기 코딩 에이전트 작업을 돌렸을 때, 진행 중 스냅샷은 다음까지 올라갔습니다.
+
+- 완료 요청 101개
+- 생성 output tokens 96,241
+- output-token 가중 aggregate decode 132.23 tok/s
+- 요청별 decode 평균 140.59 tok/s
+- 요청별 decode 중앙값 136.2 tok/s
+- 전체 MTP 수락률 51.71%
+- 보존된 로그 구간에서 확인된 프롬프트 최소 88,250토큰
+
+다만 이 수치를 Q5와의 순수한 런타임 성능 차이로 보면 안 됩니다. Q5와 NInfer는 같은 시점, 같은 워크로드로 돌린 정식 A/B가 아닙니다.
+
+## 왜 런타임을 세 개로 나눴나
+
+처음에는 하나의 런타임으로 전부 처리하고 싶었는데, 실제로 써보니 용도별로 안정적인 구성을 몇 개 유지하고 GPU에는 한 번에 하나만 올리는 방식이 더 편했습니다.
+
+| 용도 | 런타임 | 유지하는 이유 |
 | --- | --- | --- |
-| 빠른 단일 에이전트 / 장기 실사용 | NInfer + NVFP4 + FP8 KV + MTP3 | depth 기준 가장 빠른 측정값, bounded 94K Codex 통과, 과거 장기 작업 성공, 현재 계측 장기 실행 보존 중 |
-| 보수적 기본 단일 에이전트 | llama.cpp + Q5_K_M + Q8_0 K/V + MTP3 | 완료된 장기 자율 작업의 acceptance 증거가 가장 완전하게 보존된 기본값 |
-| 서빙·동시 요청 처리 용도 | SGLang + NVFP4 + FP8 E4M3 KV + FlashInfer, MTP 끔 | 서빙 기준 구성 |
+| 빠른 단일 에이전트 / 장기 코딩 | NInfer + NVFP4 + FP8 KV + MTP3 | 이 장비에서 직접 측정한 단일 에이전트 decode 성능이 가장 좋았고, 100K+ 프롬프트에서도 속도 저하가 비교적 작았음 |
+| 보수적인 기본값 | llama.cpp + Q5_K_M + Q8_0 K/V + MTP3 | 완료된 장기 에이전트 작업과 최종 검증 기록이 현재 저장소에 가장 잘 남아 있음 |
+| 서빙 / 동시 요청 | SGLang + NVFP4 + FP8 KV | FlashInfer와 chunked prefill을 사용하는 서빙 기준 구성 |
 
-**디코딩 속도(tok/s)는 에이전트의 작업 완료 처리량과 다릅니다.** 작업별 적합성을 구분한 결과이며, 어느 모델 파일이나 런타임이 모든 작업에서 우수하다는 의미는 아닙니다. 공개 측정 환경의 동시 요청 수는 1입니다.
+GPU에는 생성 런타임을 동시에 여러 개 상주시키지 않습니다. 라우터 예시는 기존 런타임을 종료한 뒤 포트와 VRAM이 풀렸는지 확인하고 다음 백엔드를 올리는 방식입니다.
 
-## 측정 환경과 런타임
+여기서 가장 중요한 점은 하나입니다.
+
+> **decode tok/s와 실제 에이전트 작업 처리량은 같은 값이 아닙니다.**
+
+벤치마크가 빨라도 tool call, prefill, cache miss, 하니스 동작, 잘못된 에이전트 경로 때문에 실제 작업은 더 느릴 수 있습니다. 그래서 이 저장소에는 단순 depth 벤치와 실제 에이전트 실행 기록을 같이 남깁니다.
+
+## 테스트 환경
 
 | 항목 | 구성 |
 | --- | --- |
-| GPU | NVIDIA GeForce RTX 5090, 보고된 메모리 32,607 MiB |
+| GPU | NVIDIA GeForce RTX 5090, 32,607 MiB 보고 |
 | 드라이버 | 610.74 |
-| 호스트 | Windows; NInfer는 WSL2/Linux, SGLang은 WSL2/Docker, llama.cpp는 네이티브 Windows CUDA |
-| 동시 실행 | 생성 런타임 1개, 요청 1개, GPU 1개 |
+| 호스트 | Windows |
+| NInfer | WSL2 / Linux |
+| SGLang | WSL2 / Docker |
+| llama.cpp | Windows 네이티브 CUDA |
+| 공개 벤치 동시성 | 요청 1개, 생성 런타임 1개, GPU 1개 |
 
-### NInfer NVFP4 + MTP3
+## NInfer: NVFP4 + FP8 KV + MTP3
 
-- 런타임: `Neroued/ninfer`, 고정 리비전 `a16b6442856620b7e4856acb25215acbf7e3c750`
-- 모델: `neroued/Qwen3.8-27B-nvfp4-NInfer`, 파일 `qwen3_8_27b_nvfp4.ninfer`
-- Linux/WSL2, RTX 5090 (`sm_120a`), CUDA Toolkit 13.1 이상에서 소스 빌드
+현재 이 장비에서 직접 측정한 단일 에이전트 경로 중 가장 빠른 구성입니다.
+
+### 사용한 구성
+
+- 런타임: [`Neroued/ninfer`](https://github.com/Neroued/ninfer)
+- 고정 런타임 리비전: [`a16b6442…c750`](https://github.com/Neroued/ninfer/commit/a16b6442856620b7e4856acb25215acbf7e3c750)
+- 모델: [`neroued/Qwen3.8-27B-nvfp4-NInfer`](https://huggingface.co/neroued/Qwen3.8-27B-nvfp4-NInfer)
+- 테스트한 모델 리비전: [`11dbbbbb…31be`](https://huggingface.co/neroued/Qwen3.8-27B-nvfp4-NInfer/tree/11dbbbbbc33db198afe2f02c9232c771ff7031be)
+- 파일: `qwen3_8_27b_nvfp4.ninfer`
+- SHA-256: `552c374c685dce302603b95fbe940fb04243c0cd44c083efc644ad3d980d462c`
+- Linux / WSL2
+- CUDA Toolkit 13.1 이상
 - OpenAI 호환 엔드포인트: `127.0.0.1:8083`
-- NVFP4 가중치, FP8 KV, MTP3, 최적화된 제안 헤드, 동시 요청 1
-- 런타임 컨텍스트와 KV 용량 240,000토큰
-- 문서화된 Qwen Code 운영 한도는 120,000토큰, 자동 압축 기준 0.7 및 thinking 비활성화 정책 유지
+- NVFP4 weights
+- FP8 KV cache
+- MTP3
+- 동시 요청 1
+- 런타임/KV 설정 용량 240,000토큰
 
-설정 예시: [ninfer-nvfp4-mtp3.example.sh](configs/ninfer-nvfp4-mtp3.example.sh). **240K는 설정 용량이며, 9월 9일 보존 depth suite에서 160K–240K 실제 작업을 수행했다는 뜻은 아닙니다.**
+Qwen Code에서는 여전히 **120,000토큰을 운영 상한**으로 두고 기존 0.7 auto-compaction 정책을 사용합니다. 위의 240K는 런타임이 잡을 수 있는 용량이지, 240K까지 에이전트 품질을 검증했다는 뜻은 아닙니다.
 
-### 보수적 기본값: llama.cpp Q5 + MTP3
+설정 예시: [`configs/ninfer-nvfp4-mtp3.example.sh`](configs/ninfer-nvfp4-mtp3.example.sh)
 
-- 모델: `bartowski/Qwen3.8-27B-GGUF`, 파일 `Qwen3.8-27B-Q5_K_M.gguf`
-- llama.cpp 빌드 10435, 커밋 `9e40df63ba151d771d8b247ac4011cf203337e99`
-- 서버 컨텍스트 131,072토큰, K/V 캐시 모두 Q8_0
-- Flash Attention 사용, 66/66 레이어 GPU 적재, CPU 폴백 0
-- `parallel=1`, `batch=2048`, `ubatch=512`, 비전 끔
+### 94K Codex 호환성 문제
+
+약 94K 프롬프트로 Codex CLI 작업을 처음 돌렸을 때는 실패했습니다. Responses 호환 레이어가 NInfer 경로에서 지원하지 않는 `internal_chat_message_metadata_passthrough`를 그대로 전달한 것이 원인이었습니다.
+
+NInfer 전용 어댑터에서 이 메타데이터만 제거하고 tool argument, output, call ID, message content는 그대로 유지하도록 수정했습니다.
+
+같은 제한된 read → edit → test 작업을 다시 돌리자 **33.409초**에 끝났고 독립 fixture 검사 **3/3**을 통과했습니다.
+
+세 번의 generation decode는 각각:
+
+- 183.2 tok/s
+- 174.5 tok/s
+- 140.5 tok/s
+
+였습니다.
+
+다만 각 generation의 출력 길이가 짧았기 때문에 이 값은 평균 에이전트 TPS로 쓰지 않고, 94K 근처에서 tool path가 정상 동작했다는 근거로만 남깁니다.
+
+상세: [NInfer 검증 기록](benchmarks/ninfer-qualification-2026-09-09.ko.md)
+
+### 장기 에이전트 작업
+
+NInfer는 이전 로컬 사용에서도 긴 코딩 에이전트 작업을 정상 완료한 적이 있습니다. 다만 그때는 현재와 같은 수준으로 telemetry를 보존하지 않았기 때문에, 과거 실행에 수치를 소급해서 붙이지 않았습니다.
+
+2026-09-16 계측 실행은 별도로 보존했습니다.
+
+[NInfer 장기 에이전트 계측](benchmarks/ninfer-long-agent-live-2026-09-16.md)
+
+공개된 스냅샷 시점에는 작업이 아직 진행 중이었기 때문에 최종 task acceptance는 완료된 것처럼 적지 않았습니다.
+
+## llama.cpp Q5_K_M + MTP3
+
+현재는 보수적인 기본값으로 남겨두고 있습니다. 성능이 항상 더 좋다는 뜻이 아니라, 완료된 장기 작업과 최종 검증 기록이 가장 잘 남아 있기 때문입니다.
+
+### 사용한 구성
+
+- 모델: [`bartowski/Qwen3.8-27B-GGUF`](https://huggingface.co/bartowski/Qwen3.8-27B-GGUF)
+- 테스트 리비전: [`f0eec4a4…c034`](https://huggingface.co/bartowski/Qwen3.8-27B-GGUF/tree/f0eec4a4bb4975114a030d048952d83c0a53c034)
+- 파일: `Qwen3.8-27B-Q5_K_M.gguf`
+- SHA-256: `E731E180460B906F373294A4E2DE10541E80EE676AF7F8C949A84DBB6ED3CAA8`
+- llama.cpp build 10435
+- 커밋: [`9e40df63…7e99`](https://github.com/ggml-org/llama.cpp/commit/9e40df63ba151d771d8b247ac4011cf203337e99)
+- context 131,072
+- K/V cache Q8_0 / Q8_0
+- Flash Attention 사용
+- 66/66 레이어 GPU 적재
+- CPU fallback 0
+- `parallel=1`
+- `batch=2048`
+- `ubatch=512`
 - MTP3: `--spec-type draft-mtp --spec-draft-n-max 3`
 
-설정 예시: [llamacpp-q5-mtp3-128k.example.ps1](configs/llamacpp-q5-mtp3-128k.example.ps1).
+보존된 검증 실행에서 peak VRAM은 약 **28.63 GB**였고 약 **3.98 GiB**가 남았습니다.
 
-### 서빙 기준: SGLang NVFP4
+설정 예시: [`configs/llamacpp-q5-mtp3-128k.example.ps1`](configs/llamacpp-q5-mtp3-128k.example.ps1)
 
-- 모델: `RadixArk/Qwen3.8-27B-NVFP4`
+### 완료된 장기 작업
+
+2026-08-19 실행에서는 다음을 관측했습니다.
+
+- 평균 decode 약 109.51 tok/s
+- 최대 확인 context 106,829토큰
+- MTP 수락률 89.61%
+- prefix cache 16.675M tokens
+- cache hit rate 96.8%
+
+테스트 하니스 정리 문제를 수정한 뒤 최종 검증은 다음과 같이 끝났습니다.
+
+- `typecheck PASS`
+- `lint PASS`
+- `build PASS`
+- `vitest 12/12 PASS`
+
+다만 NInfer와 비교 가능한 end-to-end wall time은 수집하지 않았습니다. 따라서 이 실행만으로 두 런타임의 실제 작업 속도를 직접 비교하지 않습니다.
+
+상세: [Q5 장기 에이전트 검증](benchmarks/long-agent-qualification-2026-08-19.md)
+
+## SGLang NVFP4
+
+단일 에이전트 최고 속도용이라기보다 서빙과 동시 요청 쪽 기준 구성으로 남겨둔 런타임입니다.
+
+### 사용한 구성
+
+- 모델: [`RadixArk/Qwen3.8-27B-NVFP4`](https://huggingface.co/RadixArk/Qwen3.8-27B-NVFP4)
+- 테스트 리비전: [`52d1adc5…b854`](https://huggingface.co/RadixArk/Qwen3.8-27B-NVFP4/tree/52d1adc5f38aa5ebf099c29ed7025ba34cfbb854)
 - SGLang 패키지: `0.0.0.dev0+qwen38.27b.g561c8f3`
-- 서버 컨텍스트 131,072토큰, FP8 E4M3 KV 풀 약 148,997토큰
-- FlashInfer 사용, MTP 끔, CPU 레이어 오프로딩 0
-- `max-running-requests=1`, `max-mamba-cache-size=5`
+- 이미지 빌드 커밋: [`c4271c3f…51c5`](https://github.com/sgl-project/sglang/commit/c4271c3fe1262fc2adbd162c33b25de5255251c5)
+- 컨테이너 digest: `sha256:506525a5907ea22c9d445afb7c03603959b912de034d86915cf17da814f1a124`
+- context 131,072
+- KV FP8 E4M3
+- 사용 가능 KV pool 약 148,997토큰
+- FlashInfer
+- MTP 끔
+- `max-running-requests=1`
+- `max-mamba-cache-size=5`
+- CPU layer offload 0
 
-설정 예시: [sglang-nvfp4-128k.example.sh](configs/sglang-nvfp4-128k.example.sh).
+steady decode는 약 **69.3 tok/s**, 80K+ context에서는 약 **60.8 tok/s**였습니다.
+
+설정 예시: [`configs/sglang-nvfp4-128k.example.sh`](configs/sglang-nvfp4-128k.example.sh)
 
 ## 벤치마크 요약
 
-아래 depth 값은 디코딩 속도이며 단위는 tok/s입니다. NInfer는 2026-09-09 측정, Q5와 SGLang은 기존 측정입니다. **같은 시점의 A/B 실험이 아닙니다.**
+아래 값은 저장소에 공개한 로컬 depth 측정값입니다. context가 길어질 때 decode가 어떻게 변하는지 보는 데는 유용하지만, **같은 날 같은 조건으로 수행한 정식 A/B는 아닙니다.**
 
-| 런타임 | 짧은 입력 | 32K 표기 | 80K 표기 | 114K 표기 |
+| 런타임 | 짧은 입력 | ~32K 표기 | ~80K 표기 | ~114K 표기 |
 | --- | ---: | ---: | ---: | ---: |
-| SGLang NVFP4 | 약 69.3 | 미측정 | 약 60.8 | 미측정 |
+| SGLang NVFP4 | ~69.3 | — | ~60.8 | — |
 | Q5_K_M + MTP3 | 151.72 | 120.29 | 98.59 | 94.66 |
 | NInfer NVFP4 + MTP3 | **222.0** | **190.6** | **176.9** | **169.8** |
 
-32K/80K/114K는 기존 비교 표기입니다. NInfer 실제 프롬프트는 38,717 / 83,917 / 113,956토큰입니다. 짧은 입력도 Q5와 길이가 달라 동일 프롬프트의 속도 향상률로 해석할 수 없습니다. 미측정 값을 추정해 채우지 않았습니다.
+NInfer에서 각 표기에 대응하는 실제 프롬프트 길이는 **38,717 / 83,917 / 113,956토큰**입니다. 짧은 입력 역시 과거 Q5 측정과 길이가 같지 않습니다.
 
-### NInfer 실제 장기 에이전트 스냅샷 — 2026-09-16
+CSV: [`benchmarks/runtime-comparison.csv`](benchmarks/runtime-comparison.csv)
 
-진행 중이던 실제 장기 작업에서 다음 값을 관측했습니다.
+측정 방법: [`docs/methodology.md`](docs/methodology.md)
 
-| 지표 | 값 |
-| --- | ---: |
-| 완료 요청 | **101** |
-| 생성 output tokens | **96,241** |
-| Aggregate decode | **132.23 tok/s** |
-| 요청별 decode 평균 | **140.59 tok/s** |
-| 요청별 decode 중앙값 | **136.2 tok/s** |
-| 전체 MTP 수락률 | **51.71%** |
-| 표시된 로그에서 확인한 prompt depth | **최소 88,250토큰** |
+## 라우팅 방식
 
-AggregateTPS는 총 output tokens를 각 요청의 `output/decode_tps`로 추정한 전체 decode time으로 나눈 출력 토큰 가중값입니다. 과거 Q5 장기 실행의 109.51 tok/s보다 수치상 약 20.7% 높지만, workload와 하니스가 동일한 A/B가 아니므로 런타임 자체가 20.7% 빠르다고 단정하지 않습니다.
+공개된 라우터 파일은 일부러 작은 데이터 명세로만 두었습니다.
 
-NInfer는 이전 장기 작업에서도 정상 완료됐습니다. 다만 이전 성공 실행의 정량 telemetry bundle이 이 저장소에 남아 있지 않아 해당 실행에 수치를 소급해 붙이지 않았습니다. 현재 계측 실행 역시 이 스냅샷 시점에는 진행 중이므로 최종 task acceptance는 별도로 갱신해야 합니다.
+[`configs/local-model-router.example.json`](configs/local-model-router.example.json)
 
-상세: [NInfer 실시간 장기 계측](benchmarks/ninfer-long-agent-live-2026-09-16.md).
+동작 흐름은 단순합니다.
 
-### 기존 완료 실행
+1. 작업에 맞는 런타임을 선택합니다.
+2. 라우터가 소유한 기존 런타임만 종료합니다.
+3. 포트와 VRAM이 실제로 풀렸는지 확인합니다.
+4. GPU 스케줄러를 통해 백엔드 하나만 시작합니다.
+5. `/v1/models`에서 예상한 모델 ID가 나오는지 확인합니다.
+6. 포트나 모델이 다르면 추측해서 진행하지 않고 중단합니다.
+7. 선택한 런타임에 맞는 하니스 설정으로 작업을 실행합니다.
+8. 런타임 성능과 실제 변경 결과는 별도로 검증합니다.
 
-Q5의 2026-08-19 자율 코딩 실행에서는 평균 109.51 tok/s, 최대 컨텍스트 106,829토큰, MTP 수락률 89.61%를 관측했습니다. 테스트 하니스 정리 문제를 수정한 뒤 실행 후 정식 검증에서 타입 검사·린트·빌드와 `vitest` 12/12가 통과했습니다. 비교 가능한 전체 작업 소요 시간은 수집하지 않았습니다.
+상세: [agent routing](docs/agent-routing.md)
 
-NInfer는 최초 94K Codex 작업에서 호환성 오류로 실패했습니다. 어댑터 수정 후 같은 제한된 읽기·수정·테스트 작업은 33.409초, 테스트 3/3으로 통과했습니다.
+## 재현 방법
 
-상세 수치·표본 수·실패 기록: [런타임 비교](benchmarks/runtime-comparison.ko.md), [NInfer 검증](benchmarks/ninfer-qualification-2026-09-09.ko.md).
+1. 모델은 각 업스트림 저장소에서 직접 받습니다.
+2. README에 적힌 리비전과 해시를 확인합니다.
+3. NInfer는 WSL2/Linux에서 고정 리비전으로 빌드하고, llama.cpp/SGLang은 해당 버전의 런타임을 준비합니다.
+4. `configs/` 아래 예시 경로를 자신의 환경에 맞게 바꿉니다.
+5. 별도 인증이나 네트워크 제어를 넣지 않았다면 API는 loopback에만 바인딩합니다.
+6. 생성 백엔드는 하나만 시작합니다.
+7. [`scripts/healthcheck.example.ps1`](scripts/healthcheck.example.ps1)로 `/v1/models`를 확인합니다.
+8. 속도보다 먼저 correctness를 확인합니다.
+9. 짧은 코딩 테스트와 장기 에이전트 테스트는 분리해서 봅니다.
 
-## 라우팅과 재현
+전체 절차: [docs/reproducibility.md](docs/reproducibility.md)
 
-공개 [라우터 예시](configs/local-model-router.example.json)는 데이터 형식의 명세이며 설치된 제어기가 아닙니다.
+## 이 저장소가 증명하지 않는 것
 
-1. 작업을 분류합니다. Q5는 완료된 acceptance 증거를 기준으로 보수적 기본값이고, NInfer는 더 높은 실측 decode 성능이 필요한 단일 에이전트/장기 작업 경로로 선택할 수 있습니다.
-2. 라우터 소유 런타임만 종료하고 포트와 VRAM 해제를 확인합니다.
-3. 장비의 GPU 스케줄러를 통해 선택한 런타임 하나를 시작합니다.
-4. `/v1/models`의 모델 ID를 확인합니다. 포트나 모델이 일치하지 않으면 실행을 중단합니다.
-5. 선택한 런타임에 맞는 작업별 에이전트/하니스 설정을 적용합니다.
-6. 변경 내역과 통과 기준을 별도로 검증합니다.
+- RTX 5090 한 대에서 얻은 결과이며 여러 장비를 대상으로 한 하드웨어 연구가 아닙니다.
+- Q5와 NInfer 장기 작업은 동일한 workload의 정식 A/B가 아닙니다.
+- 각 런타임의 짧은 입력과 depth 측정 프롬프트가 완전히 동일하지 않습니다.
+- Q5 재검증에서는 NInfer와 비교 가능한 end-to-end wall time을 수집하지 않았습니다.
+- 240K는 NInfer 런타임/KV 설정 용량이며, 240K 에이전트 품질을 검증했다는 의미가 아닙니다.
+- 과거 NInfer 장기 성공 실행은 현재와 동일한 telemetry 형태로 보존되지 않았습니다.
+- 드라이버, 커널, 런타임 커밋, 모델 리비전, 하니스, tool-call 패턴, MTP 수락률에 따라 결과는 달라질 수 있습니다.
+- 비전 경로는 테스트하지 않았습니다.
 
-모델은 업스트림에서 직접 받아 정확한 리비전과 해시를 확인하세요. `configs/`의 일반화된 경로를 환경에 맞추되 루프백 바인딩을 유지하고, `scripts/healthcheck.example.ps1`로 상태를 확인합니다. 새 측정에서는 처리량보다 정확성을 먼저 검증하고, 제한된 코딩과 장기 에이전트 작업을 나누어 평가합니다.
+더 자세한 한계: [docs/limitations.md](docs/limitations.md)
 
-자세한 절차: [재현 가이드(영문)](docs/reproducibility.md), [라우팅 가이드(영문)](docs/agent-routing.md).
+## 업스트림 프로젝트
 
-## 한계와 라이선스
+이 저장소는 아래 모델 가중치를 재배포하지 않습니다.
 
-- 하드웨어 표본은 RTX 5090 시스템 한 대입니다. 여러 시드에 걸친 통계적 모델 품질 평가가 아닙니다.
-- 장기 실행끼리 workload·하니스·요청 분포가 동일한 동시 A/B가 아닙니다.
-- Q5 재검증의 비교 가능한 전체 소요 시간은 수집하지 않았습니다.
-- 이전 NInfer 장기 작업은 성공했지만 비교 가능한 정량 telemetry bundle은 보존돼 있지 않습니다. 2026-09-16 계측 실행은 공개된 스냅샷 시점에 아직 진행 중입니다.
-- 런타임별 입력 깊이와 측정 조건이 완전히 일치하지 않습니다. 드라이버·커널·모델·에이전트 버전·하니스·tool-call 패턴·MTP 수락률에 따라 결과가 달라질 수 있습니다.
-- NInfer의 240K는 설정 용량이며, 보존된 9월 9일 depth suite에서 160K–240K 작업을 검증했다는 뜻이 아닙니다.
-- 비전 경로는 검증하지 않았습니다.
+- [`Qwen/Qwen3.8-27B`](https://huggingface.co/Qwen/Qwen3.8-27B)
+- [`neroued/Qwen3.8-27B-nvfp4-NInfer`](https://huggingface.co/neroued/Qwen3.8-27B-nvfp4-NInfer)
+- [`RadixArk/Qwen3.8-27B-NVFP4`](https://huggingface.co/RadixArk/Qwen3.8-27B-NVFP4)
+- [`bartowski/Qwen3.8-27B-GGUF`](https://huggingface.co/bartowski/Qwen3.8-27B-GGUF)
+- [`Neroued/ninfer`](https://github.com/Neroued/ninfer)
+- [`ggml-org/llama.cpp`](https://github.com/ggml-org/llama.cpp)
+- [`sgl-project/sglang`](https://github.com/sgl-project/sglang)
+- [`QwenLM/qwen-code`](https://github.com/QwenLM/qwen-code)
 
-저장소의 구성 가이드, 문서, 소규모 검증 스크립트와 도표는 MIT 라이선스입니다. 모델과 업스트림 런타임에는 각각의 라이선스가 적용됩니다. 다운로드할 정확한 리비전의 라이선스와 모델 카드를 확인하세요. [업스트림 라이선스 기록(영문)](docs/upstream-licenses.md)과 [상세 한계(영문)](docs/limitations.md)를 참고하세요.
+실제로 내려받는 리비전의 model card와 라이선스를 직접 확인하는 것을 권장합니다. 이 저장소에서 확인한 라이선스는 [docs/upstream-licenses.md](docs/upstream-licenses.md)에 정리했습니다.
+
+## 라이선스
+
+이 저장소에서 직접 작성한 설정, 문서, 소규모 검증 스크립트와 다이어그램은 MIT 라이선스입니다. 업스트림 모델과 런타임은 각각의 라이선스를 따릅니다.
+
+Qwen, NInfer, RadixArk, bartowski, llama.cpp, SGLang, Qwen Code 프로젝트의 유지보수자와 기여자에게 감사합니다.
