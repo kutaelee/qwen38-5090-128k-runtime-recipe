@@ -12,7 +12,7 @@ This repo covers three runtime setups I use for different jobs:
 
 It does **not** contain modified model weights. The point is to keep the runtime configs, exact revisions, benchmark notes, and failure cases in one place so the setup can be reproduced without guessing.
 
-[Benchmarks](benchmarks/runtime-comparison.md) · [NInfer long-agent telemetry](benchmarks/ninfer-long-agent-live-2026-09-16.md) · [Reproduction guide](docs/reproducibility.md) · [Hugging Face showcase](https://huggingface.co/spaces/kutaelee/Qwen3.8-27B-RTX5090-128K-Recipe)
+[Benchmarks](benchmarks/runtime-comparison.md) · [NInfer long-agent telemetry](benchmarks/ninfer-long-agent-live-2026-09-16.md) · [Long-context experiment notes](docs/long-context-experiments-2026-09-18.md) · [Reproduction guide](docs/reproducibility.md) · [Hugging Face showcase](https://huggingface.co/spaces/kutaelee/Qwen3.8-27B-RTX5090-128K-Recipe)
 
 ![Workload-aware runtime routing](assets/architecture.svg)
 
