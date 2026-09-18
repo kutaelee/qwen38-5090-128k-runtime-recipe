@@ -6,13 +6,13 @@ A practical setup for running Qwen3.8-27B on one 32 GB RTX 5090, with configs an
 
 This repo covers three runtime setups I use for different jobs:
 
-- **NInfer + NVFP4 + FP8 KV + MTP3** for fast single-agent work
+- **NInfer + NVFP4 + FP8 KV + DFlash2 K=7** as the promoted fast single-agent candidate; MTP3 remains the rollback/long-agent evidence route
 - **llama.cpp + Q5_K_M + MTP3** as the safer, better-documented fallback
 - **SGLang + NVFP4** for serving/concurrency experiments
 
 It does **not** contain modified model weights. The point is to keep the runtime configs, exact revisions, benchmark notes, and failure cases in one place so the setup can be reproduced without guessing.
 
-[Benchmarks](benchmarks/runtime-comparison.md) · [NInfer long-agent telemetry](benchmarks/ninfer-long-agent-live-2026-09-16.md) · [Long-context experiment notes](docs/long-context-experiments-2026-09-18.md) · [Reproduction guide](docs/reproducibility.md) · [Hugging Face showcase](https://huggingface.co/spaces/kutaelee/Qwen3.8-27B-RTX5090-128K-Recipe)
+[Benchmarks](benchmarks/runtime-comparison.md) · [DFlash2 K=7 qualification](docs/dflash2-qualification-2026-09-18.md) · [NInfer long-agent telemetry](benchmarks/ninfer-long-agent-live-2026-09-16.md) · [Long-context experiment notes](docs/long-context-experiments-2026-09-18.md) · [Reproduction guide](docs/reproducibility.md) · [Hugging Face showcase](https://huggingface.co/spaces/kutaelee/Qwen3.8-27B-RTX5090-128K-Recipe)
 
 ![Workload-aware runtime routing](assets/architecture.svg)
 
@@ -73,7 +73,7 @@ A runtime can benchmark well and still lose time on tool calls, prefill, cache m
 
 ## NInfer: NVFP4 + FP8 KV + MTP3
 
-This is currently the fastest single-agent route I have measured on this machine.
+This section documents the established MTP3 route and its long-agent evidence. A bounded 2026-09-18 qualification promoted DFlash2 K=7 as the preferred fast 240K candidate after 40/40 tool correctness and ~290–300 tok/s decode on that bounded workload; see the linked DFlash2 note for scope and caveats.
 
 ### Tested setup
 
